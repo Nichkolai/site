@@ -309,6 +309,48 @@
     if (count) {
       count.textContent = `${state.history.length} ${plural(state.history.length, "запись", "записи", "записей")}`;
     }
+
+    renderWithdrawals();
+  }
+
+  function renderWithdrawals() {
+    const list = document.getElementById("withdrawHistoryList");
+    if (!list) return;
+
+    list.replaceChildren();
+    const count = document.getElementById("withdrawHistoryCount");
+    if (count) {
+      count.textContent = `${state.withdrawals.length} ${plural(
+        state.withdrawals.length,
+        "заявка",
+        "заявки",
+        "заявок"
+      )}`;
+    }
+
+    if (!state.withdrawals.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-inline";
+      empty.textContent = "Заявок пока нет. Вывести звёзды можно из кошелька.";
+      list.append(empty);
+      return;
+    }
+
+    state.withdrawals.slice(0, 5).forEach((request) => {
+      const row = document.createElement("div");
+      const contact = request.contact ? ` · ${request.contact}` : "";
+      row.className = "history-row";
+      row.innerHTML = `
+        <span class="recent-icon withdraw">${iconMarkup("#i-star")}</span>
+        <div class="history-title">
+          <strong>Вывод ${formatStars(request.amount)} ★</strong>
+          <span>Заявка ${escapeHtml(request.id)}</span>
+          <small>${escapeHtml(historyDate(request.at))}${escapeHtml(contact)}</small>
+        </div>
+        <span class="withdraw-status">Отправлена</span>
+      `;
+      list.append(row);
+    });
   }
 
   function recordResult({ game, title, detail, delta, wager }) {
@@ -920,6 +962,7 @@
     const mode = sendWithdrawRequest(request);
     showWithdrawResult(request, mode);
     updateWithdrawUI();
+    renderWithdrawals();
     document.dispatchEvent(new CustomEvent("np:state"));
     toast("Заявка создана", `${formatStars(amount)} ★ зарезервированы для вывода.`, "info");
   }

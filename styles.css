@@ -636,6 +636,7 @@ img, canvas { display: block; max-width: 100%; }
 .recent-icon.mines { color: var(--purple); background: rgba(180, 155, 255, 0.09); }
 .recent-icon.crash { color: var(--orange); background: rgba(255, 159, 90, 0.09); }
 .recent-icon.upgrader { color: var(--teal); background: rgba(95, 240, 208, 0.09); }
+.recent-icon.withdraw { color: var(--gold); background: rgba(255, 210, 106, 0.1); }
 
 .recent-main { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .recent-main strong { overflow: hidden; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
@@ -851,6 +852,19 @@ img, canvas { display: block; max-width: 100%; }
 .history-title small { color: var(--muted-2); font-size: 8.5px; opacity: 0.8; }
 
 .history-delta { font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.withdraw-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: var(--gold);
+  background: rgba(255, 210, 106, 0.09);
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
 
 .empty-state {
   display: flex;
