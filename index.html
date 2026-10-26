@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#07090d">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="KAZ — демо-казино для Telegram. Слоты, блэкджек, рулетка, мины, краш и апгрейд на виртуальные звёзды.">
+  <title>KAZ — демо-казино</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23080b0f'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23c8ff5e'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="games.css?v=3">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-slots" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 8v8M12 8v8M16 8v8"/></symbol>
+    <symbol id="i-cards" viewBox="0 0 24 24"><rect x="4" y="5" width="12" height="16" rx="2" transform="rotate(-8 10 13)"/><rect x="9" y="4" width="12" height="16" rx="2" transform="rotate(7 15 12)"/></symbol>
+    <symbol id="i-wheel" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5M5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6"/></symbol>
+    <symbol id="i-bomb" viewBox="0 0 24 24"><circle cx="10.5" cy="13.5" r="7"/><path d="m16 8 2.5-2.5M18.5 5.5c1.7-1.7 3.5-.8 3.5 1.2M17.5 3.5l.3 2.2M20 6.5l2 .4"/></symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M14 4c3-2 6-1 6-1s1 3-1 6l-5 5-4-4 4-6Z"/><path d="m10 10-4 1-2 3 5 1M14 14l-1 4-3 2-1-5"/><circle cx="15.5" cy="7.5" r="1.4"/><path d="M5 19c-1 0-2 1-2 2 1 0 2-1 2-2Z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4Z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4Z"/><path d="m16 9 5 5M21 9l-5 5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2Z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.7 3.2 8.1 7.5 9.5 4.3-1.4 7.5-4.8 7.5-9.5V6L12 3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"/><path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 13v5M8 21h8"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4M6 6l2.8 2.8M15.2 15.2 18 18M18 6l-2.8 2.8M8.8 15.2 6 18"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  </svg>
+
+  <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <div class="app">
+    <header class="appbar">
+      <button class="icon-btn back-btn" id="backBtn" type="button" data-nav="lobby" aria-label="Назад" hidden>
+        <svg class="icon"><use href="#i-arrow-left"></use></svg>
+      </button>
+
+      <a class="brand" href="#lobby" data-nav="lobby" aria-label="KAZ — на главную">
+        <span class="brand-mark"><svg class="icon"><use href="#i-star"></use></svg></span>
+        <span class="brand-text"><strong>KAZ</strong><small>КАЗИНО</small></span>
+      </a>
+
+      <div class="appbar-actions">
+        <button class="icon-btn sound-btn" id="soundBtn" type="button" aria-label="Выключить звук" title="Звук">
+          <svg class="icon sound-on"><use href="#i-volume"></use></svg>
+          <svg class="icon sound-off"><use href="#i-muted"></use></svg>
+        </button>
+        <button class="balance-pill" type="button" data-action="topup" aria-label="Пополнить демо-баланс звёзд">
+          <svg class="icon star-icon"><use href="#i-star"></use></svg>
+          <strong data-bind="balance">50</strong>
+          <span class="balance-plus"><svg class="icon"><use href="#i-plus"></use></svg></span>
+        </button>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- ЛОББИ -->
+      <section class="view active" id="view-lobby" data-view="lobby">
+        <div class="hero">
+          <div class="hero-top">
+            <span class="badge"><i></i> ДЕМО-РЕЖИМ</span>
+            <span class="age-badge">18+</span>
+          </div>
+          <h1>Играй на<br><em>звёзды</em></h1>
+          <p>6 игр, виртуальный баланс и никаких реальных денег.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" id="heroBonusBtn" type="button" data-action="daily-claim">
+              <svg class="icon"><use href="#i-spark"></use></svg>
+              <span>Забрать 10 звёзд</span>
+            </button>
+            <a class="btn btn-ghost" href="#slots" data-nav="slots">Играть</a>
+          </div>
+          <span class="hero-star hero-star-a" aria-hidden="true">★</span>
+          <span class="hero-star hero-star-b" aria-hidden="true">✦</span>
+          <span class="hero-star hero-star-c" aria-hidden="true">★</span>
+        </div>
+
+        <div class="stats-row">
+          <article class="stat-card">
+            <span class="stat-icon green"><svg class="icon"><use href="#i-star"></use></svg></span>
+            <div><span>Баланс</span><strong data-bind="balance">50</strong></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon blue"><svg class="icon"><use href="#i-chart"></use></svg></span>
+            <div><span>Раунды</span><strong data-bind="games">0</strong></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon gold"><svg class="icon"><use href="#i-trophy"></use></svg></span>
+            <div><span>Рекорд</span><strong data-bind="bestWin">0</strong></div>
+          </article>
+        </div>
+
+        <div class="section-head">
+          <h2>Игры</h2>
+          <span>6 режимов</span>
+        </div>
+
+        <div class="game-grid">
+          <a class="game-card" href="#slots" data-nav="slots">
+            <span class="game-icon green"><svg class="icon"><use href="#i-slots"></use></svg></span>
+            <span class="game-copy"><strong>Слоты</strong><small>5 линий · до ×240</small></span>
+          </a>
+          <a class="game-card" href="#roulette" data-nav="roulette">
+            <span class="game-icon red"><svg class="icon"><use href="#i-wheel"></use></svg></span>
+            <span class="game-copy"><strong>Рулетка</strong><small>38 чисел · 0 и 00</small></span>
+          </a>
+          <a class="game-card" href="#blackjack" data-nav="blackjack">
+            <span class="game-icon blue"><svg class="icon"><use href="#i-cards"></use></svg></span>
+            <span class="game-copy"><strong>Блэкджек</strong><small>6:5 · дилер 17</small></span>
+          </a>
+          <a class="game-card" href="#mines" data-nav="mines">
+            <span class="game-icon purple"><svg class="icon"><use href="#i-bomb"></use></svg></span>
+            <span class="game-copy"><strong>Мины</strong><small>5 мин · 25 клеток</small></span>
+          </a>
+          <a class="game-card" href="#crash" data-nav="crash">
+            <span class="game-icon orange"><svg class="icon"><use href="#i-rocket"></use></svg></span>
+            <span class="game-copy"><strong>Краш</strong><small>от ×1.00 до ×50</small></span>
+          </a>
+          <a class="game-card" href="#upgrader" data-nav="upgrader">
+            <span class="game-icon teal"><svg class="icon"><use href="#i-up"></use></svg></span>
+            <span class="game-copy"><strong>Апгрейд</strong><small>шанс до 62%</small></span>
+          </a>
+        </div>
+
+        <button class="daily-card" type="button" data-action="daily">
+          <span class="daily-icon"><svg class="icon"><use href="#i-spark"></use></svg></span>
+          <span class="daily-copy"><strong>Ежедневный бонус</strong><small>+10 звёзд каждый день</small></span>
+          <span class="daily-arrow"><svg class="icon"><use href="#i-arrow"></use></svg></span>
+        </button>
+
+        <div class="section-head">
+          <h2>Последние игры</h2>
+          <a href="#history" data-nav="history">Все</a>
+        </div>
+        <div class="recent-list" id="recentGames"></div>
+
+        <footer class="app-footer">
+          <span>KAZ · демонстрационный проект</span>
+          <span>Виртуальные звёзды не являются Telegram Stars. Реальные деньги не используются. 18+</span>
+        </footer>
+      </section>
+
+      <!-- СЛОТЫ -->
+      <section class="view" id="view-slots" data-view="slots">
+        <div class="game-head">
+          <div>
+            <span class="kicker">Автомат</span>
+            <h1>Слоты</h1>
+            <p>Собери 3 одинаковых символа на одной из 5 линий.</p>
+          </div>
+          <span class="demo-pill">ДЕМО</span>
+        </div>
+
+        <div class="slot-machine">
+          <div class="slot-marquee">
+            <span class="marquee-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="slot-title">СЛОТЫ</span>
+          </div>
+          <div class="slot-stage">
+            <div class="slot-grid" id="slotGrid" aria-label="Игровое поле слота">
+              <div class="slot-reel" data-reel="0"></div>
+              <div class="slot-reel" data-reel="1"></div>
+              <div class="slot-reel" data-reel="2"></div>
+            </div>
+            <div class="slot-win" id="slotWin" aria-live="polite">
+              <span>Готов к игре?</span>
+              <strong>Крути и лови удачу</strong>
+            </div>
+          </div>
+          <div class="slot-controls">
+            <div class="stepper">
+              <button type="button" id="slotBetDown" aria-label="Уменьшить ставку">−</button>
+              <div><span>Ставка</span><strong><span id="slotBet">2</span> ★</strong></div>
+              <button type="button" id="slotBetUp" aria-label="Увеличить ставку">+</button>
+            </div>
+            <button class="btn btn-primary spin-btn" id="spinBtn" type="button">
+              <svg class="icon"><use href="#i-reset"></use></svg>
+              <span><strong>Крутить</strong><small>5 линий</small></span>
+            </button>
+          </div>
+          <button class="text-btn slot-max" id="slotMax" type="button">Поставить максимум</button>
+        </div>
+
+        <details class="panel details-panel">
+          <summary>Таблица выплат <span class="summary-note">× к линии</span></summary>
+          <div class="paytable">
+            <div><span>💎💎💎</span><strong>×240</strong></div>
+            <div><span class="pay-seven">777</span><strong>×100</strong></div>
+            <div><span>⭐⭐⭐</span><strong>×50</strong></div>
+            <div><span>🔔🔔🔔</span><strong>×24</strong></div>
+            <div><span>🍋🍋🍋</span><strong>×16</strong></div>
+            <div><span>🍒🍒🍒</span><strong>×10</strong></div>
+          </div>
+          <p class="panel-note">Выплата только за три одинаковых символа. Ставка делится на 5 линий.</p>
+        </details>
+      </section>
+
+      <!-- БЛЭКДЖЕК -->
+      <section class="view" id="view-blackjack" data-view="blackjack">
+        <div class="game-head">
+          <div>
+            <span class="kicker">Карточная игра</span>
+            <h1>Блэкджек</h1>
+            <p>Набери 21 или обыграй дилера. Блэкджек платит 6:5.</p>
+          </div>
+          <span class="demo-pill">ДЕМО</span>
+        </div>
+
+        <div class="bj-table">
+          <div class="table-rule">BLACKJACK 6:5 · ДИЛЕР ДОБИРАЕТ НА 17</div>
+          <div class="hand-block">
+            <div class="hand-head"><span><i class="dot"></i> Дилер</span><strong class="score-pill" id="dealerScore">—</strong></div>
+            <div class="hand-cards" id="dealerHand"></div>
+          </div>
+          <div class="bj-status" id="bjStatus">Выберите ставку и начните раздачу</div>
+          <div class="hand-block">
+            <div class="hand-head"><span><i class="dot player"></i> Вы</span><strong class="score-pill" id="playerScore">—</strong></div>
+            <div class="hand-cards" id="playerHand"></div>
+          </div>
+          <div class="bet-chips" id="bjBetChips">
+            <button type="button" class="bet-chip" data-bj-bet="5">5</button>
+            <button type="button" class="bet-chip" data-bj-bet="10">10</button>
+            <button type="button" class="bet-chip" data-bj-bet="25">25</button>
+            <button type="button" class="bet-chip" data-bj-bet="50">50</button>
+          </div>
+          <div class="bet-line">
+            <span>Ставка <strong><span id="bjBetAmount">5</span> ★</strong></span>
+            <button class="btn btn-primary" id="bjDealBtn" type="button">Раздать</button>
+          </div>
+          <div class="bj-actions" id="bjActions" hidden>
+            <button class="btn btn-ghost" id="bjHitBtn" type="button">Ещё</button>
+            <button class="btn btn-soft" id="bjDoubleBtn" type="button">Удвоить</button>
+            <button class="btn btn-primary" id="bjStandBtn" type="button">Хватит</button>
+          </div>
+        </div>
+
+        <details class="panel details-panel">
+          <summary>Правила</summary>
+          <ul class="rules-list">
+            <li>Карты 2–10 — по номиналу, фигуры — 10, туз — 1 или 11.</li>
+            <li>«Ещё» — взять карту, «Хватит» — передать ход дилеру.</li>
+            <li>«Удвоить» удваивает ставку и выдаёт ровно одну карту.</li>
+            <li>Дилер добирает до 17, включая мягкие 17.</li>
+          </ul>
+        </details>
+      </section>
+
+      <!-- РУЛЕТКА -->
+      <section class="view" id="view-roulette" data-view="roulette">
+        <div class="game-head">
+          <div>
+            <span class="kicker">Колесо</span>
+            <h1>Рулетка</h1>
+            <p>38 секторов: 0 и 00. Ставьте на число, цвет или диапазон.</p>
+          </div>
+          <span class="demo-pill">ДЕМО</span>
+        </div>
+
+        <div class="panel wheel-card">
+          <div class="wheel-wrap">
+            <span class="wheel-pointer" aria-hidden="true"></span>
+            <canvas id="rouletteWheel" width="720" height="720" aria-label="Колесо рулетки"></canvas>
+            <div class="wheel-hub"><span>ДЕМО</span><strong>KAZ</strong></div>
+          </div>
+          <div class="result-line" aria-live="polite">
+            <span>Результат</span>
+            <strong class="result-number" id="resultNumber">—</strong>
+            <small id="resultCopy">Сделайте ставку</small>
+          </div>
+          <div class="last-row">
+            <span>Было</span>
+            <div class="last-numbers" id="lastNumbers"><i>Пока пусто</i></div>
+          </div>
+        </div>
+
+        <div class="panel board-panel">
+          <div class="board-head">
+            <div><span class="kicker">Стол</span><h2>Ставки <strong><span id="rouletteStake">0</span> ★</strong></h2></div>
+            <div class="chip-picker" aria-label="Номинал фишки">
+              <button type="button" class="roulette-chip is-active" data-chip="1">1</button>
+              <button type="button" class="roulette-chip" data-chip="2">2</button>
+              <button type="button" class="roulette-chip" data-chip="5">5</button>
+              <button type="button" class="roulette-chip" data-chip="10">10</button>
+            </div>
+          </div>
+
+          <div class="zero-row">
+            <button type="button" class="green" data-bet="num:0">0</button>
+            <button type="button" class="green" data-bet="num:00">00</button>
+          </div>
+          <div class="roulette-numbers" id="rouletteNumbers"></div>
+
+          <div class="outside-bets">
+            <div class="dozens">
+              <button type="button" data-bet="dozen:1">1–12</button>
+              <button type="button" data-bet="dozen:2">13–24</button>
+              <button type="button" data-bet="dozen:3">25–36</button>
+            </div>
+            <div class="even-bets">
+              <button type="button" data-bet="low">1–18</button>
+              <button type="button" data-bet="even">Чёт</button>
+              <button type="button" class="bet-red" data-bet="red"><i></i> Красное</button>
+              <button type="button" class="bet-black" data-bet="black"><i></i> Чёрное</button>
+              <button type="button" data-bet="odd">Нечёт</button>
+              <button type="button" data-bet="high">19–36</button>
+            </div>
+          </div>
+
+          <div class="roulette-actions">
+            <button type="button" class="text-btn" id="rouletteUndo">Отменить</button>
+            <button type="button" class="text-btn" id="rouletteClear">Очистить</button>
+          </div>
+          <button class="btn btn-primary spin-btn" id="rouletteSpin" type="button">
+            <svg class="icon"><use href="#i-wheel"></use></svg>
+            <span><strong>Запустить</strong><small id="rouletteSpinSub">Ставок нет</small></span>
+          </button>
+          <p class="panel-note">Число — 35:1, дюжина — 2:1, равные шансы — 1:1. 0 и 00 забирают внешние ставки.</p>
+        </div>
+      </section>
+
+      <!-- МИНЫ -->
+      <section class="view" id="view-mines" data-view="mines">
+        <div class="game-head">
+          <div>
+            <span class="kicker">Поле</span>
+            <h1>Мины</h1>
+            <p>Открывай звёзды, обходи мины и забирай множитель.</p>
+          </div>
+          <span class="demo-pill">ДЕМО</span>
+        </div>
+
+        <div class="panel mines-panel">
+          <div class="mines-top">
+            <div><span>Множитель</span><strong id="minesMultiplier">1.00×</strong></div>
+            <div><span>Следующий</span><strong id="minesNext">1.15×</strong></div>
+            <span class="small-pill">5 мин</span>
+          </div>
+          <div class="mines-grid" id="minesGrid" aria-label="Поле 5 на 5"></div>
+          <p class="game-status" id="minesStatus">Сделайте ставку и откройте первую клетку.</p>
+          <div class="stepper-row">
+            <div class="stepper">
+              <button type="button" id="minesBetDown" aria-label="Уменьшить ставку">−</button>
+              <div><span>Ставка</span><strong><span id="minesBet">5</span> ★</strong></div>
+              <button type="button" id="minesBetUp" aria-label="Увеличить ставку">+</button>
+            </div>
+            <button class="btn btn-primary" id="minesAction" type="button">Начать</button>
+          </div>
+          <p class="panel-note">Максимальный выигрыш — ×250 от ставки. Забирать можно после первой открытой звезды.</p>
+        </div>
+      </section>
+
+      <!-- КРАШ -->
+      <section class="view" id="view-crash" data-view="crash">
+        <div class="game-head">
+          <div>
+            <span class="kicker">Множитель</span>
+            <h1>Краш</h1>
+            <p>Множитель растёт. Забери до того, как случится краш.</p>
+          </div>
+          <span class="demo-pill">ДЕМО</span>
+        </div>
+
+        <div class="panel crash-panel">
+          <div class="crash-stage">
+            <span class="crash-label"><i></i> РАУНД</span>
+            <strong class="crash-multiplier" id="crashMultiplier">1.00×</strong>
+            <span class="crash-status" id="crashStatus">Готов к запуску</span>
+            <canvas id="crashCanvas" width="600" height="220" aria-label="График множителя"></canvas>
+          </div>
+          <div class="crash-history" id="crashHistory"><i>—</i></div>
+          <div class="stepper-row">
+            <div class="stepper">
+              <button type="button" id="crashBetDown" aria-label="Уменьшить ставку">−</button>
+              <div><span>Ставка</span><strong><span id="crashBet">2</span> ★</strong></div>
+              <button type="button" id="crashBetUp" aria-label="Увеличить ставку">+</button>
+            </div>
+            <button class="btn btn-primary" id="crashAction" type="button">Начать</button>
+          </div>
+          <p class="panel-note">Краш может случиться сразу. При сворачивании приложения раунд закрывается автоматически.</p>
+        </div>
+      </section>
+
+      <!-- АПГРЕЙД -->
+      <section class="view" id="view-upgrader" data-view="upgrader">
+        <div class="game-head">
+          <div>
+            <span class="kicker">Шанс</span>
+            <h1>Апгрейд</h1>
+            <p>Выбери множитель, рискни ставкой и забери выплату.</p>
+          </div>
+          <span class="demo-pill">ДЕМО</span>
+        </div>
+
+        <div class="panel up-panel">
+          <div class="up-head">
+            <div><span>Множитель</span><strong id="upTarget">×2.00</strong></div>
+            <div><span>Шанс</span><strong id="upChance">46.5%</strong></div>
+            <div><span>Выплата</span><strong id="upPayout">4 ★</strong></div>
+          </div>
+
+          <div class="up-bar" id="upBar">
+            <span class="up-zone" id="upZone"></span>
+            <span class="up-marker" id="upMarker"></span>
+          </div>
+          <div class="up-result" id="upResult" aria-live="polite">Выберите множитель</div>
+
+          <div class="up-targets" id="upTargets">
+            <button type="button" data-up-target="1.5">×1.5</button>
+            <button type="button" data-up-target="2" class="is-active">×2</button>
+            <button type="button" data-up-target="3">×3</button>
+            <button type="button" data-up-target="5">×5</button>
+            <button type="button" data-up-target="10">×10</button>
+          </div>
+
+          <div class="stepper-row">
+            <div class="stepper">
+              <button type="button" id="upBetDown" aria-label="Уменьшить ставку">−</button>
+              <div><span>Ставка</span><strong><span id="upBet">2</span> ★</strong></div>
+              <button type="button" id="upBetUp" aria-label="Увеличить ставку">+</button>
+            </div>
+            <button class="btn btn-primary" id="upAction" type="button">Апгрейд</button>
+          </div>
+          <p class="panel-note">Шанс = 93% ÷ множитель. Чем выше множитель, тем ниже шанс.</p>
+        </div>
+      </section>
+
+      <!-- ИСТОРИЯ -->
+      <section class="view" id="view-history" data-view="history">
+        <div class="game-head">
+          <div>
+            <span class="kicker">Прогресс</span>
+            <h1>История</h1>
+            <p>Все раунды сохраняются локально на этом устройстве.</p>
+          </div>
+          <span class="demo-pill">ЛОКАЛЬНО</span>
+        </div>
+
+        <div class="stats-row history-stats">
+          <article class="stat-card">
+            <span class="stat-icon green"><svg class="icon"><use href="#i-star"></use></svg></span>
+            <div><span>Баланс</span><strong data-bind="balance">50</strong></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon blue"><svg class="icon"><use href="#i-slots"></use></svg></span>
+            <div><span>Раунды</span><strong data-bind="games">0</strong></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon purple"><svg class="icon"><use href="#i-chart"></use></svg></span>
+            <div><span>Оборот</span><strong data-bind="wagered">0</strong></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon gold"><svg class="icon"><use href="#i-trophy"></use></svg></span>
+            <div><span>Рекорд</span><strong data-bind="bestWin">0</strong></div>
+          </article>
+        </div>
+
+        <article class="panel history-panel">
+          <div class="panel-head">
+            <h2>Все раунды</h2>
+            <span class="small-pill" id="historyCount">0 записей</span>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </article>
+
+        <div class="danger-zone">
+          <div>
+            <strong>Сбросить прогресс</strong>
+            <p>Баланс вернётся к 50 звёздам, история и рекорд очистятся.</p>
+          </div>
+          <button class="btn btn-danger" type="button" id="openResetBtn2">
+            <svg class="icon"><use href="#i-reset"></use></svg>
+            Сбросить
+          </button>
+        </div>
+
+        <footer class="app-footer">
+          <span>KAZ · демонстрационный проект</span>
+          <span>Виртуальные звёзды не являются Telegram Stars. Реальные деньги не используются. 18+</span>
+        </footer>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="Навигация">
+      <button type="button" class="tab" data-nav="lobby">
+        <svg class="icon"><use href="#i-slots"></use></svg>
+        <span>Игры</span>
+      </button>
+      <button type="button" class="tab" data-action="daily">
+        <svg class="icon"><use href="#i-spark"></use></svg>
+        <span>Бонус</span>
+      </button>
+      <button type="button" class="tab" data-nav="history">
+        <svg class="icon"><use href="#i-history"></use></svg>
+        <span>История</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- МОДАЛЬНЫЕ ОКНА -->
+  <div class="modal" id="modalBonus" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="bonusModalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card">
+      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
+      <span class="modal-star"><svg class="icon"><use href="#i-star"></use></svg></span>
+      <span class="modal-kicker">Ежедневный подарок</span>
+      <h2 id="bonusModalTitle">+10 звёзд</h2>
+      <p>Заходи каждый день и забирай бонус. Без условий и отыгрыша — это виртуальные звёзды.</p>
+      <button class="btn btn-primary modal-main-btn" id="claimBonusBtn" type="button">Забрать бонус</button>
+      <span class="modal-footnote" id="bonusFootnote">Доступно сегодня</span>
+    </div>
+  </div>
+
+  <div class="modal" id="modalTopup" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="topupModalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card">
+      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
+      <span class="modal-kicker">Демо-пополнение</span>
+      <h2 id="topupModalTitle">Добавить звёзды</h2>
+      <p>Бесплатно и виртуально. Это не Telegram Stars, реальные деньги не используются.</p>
+      <div class="topup-grid">
+        <button type="button" data-topup="50"><span>+50</span><small>★</small></button>
+        <button type="button" data-topup="150" class="featured"><span>+150</span><small>★</small><b>Выгодно</b></button>
+        <button type="button" data-topup="500"><span>+500</span><small>★</small></button>
+      </div>
+      <div class="modal-warning"><svg class="icon"><use href="#i-shield"></use></svg> Виртуальные звёзды нельзя вывести или обменять на деньги.</div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalReset" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card">
+      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
+      <span class="modal-star danger"><svg class="icon"><use href="#i-reset"></use></svg></span>
+      <h2 id="resetModalTitle">Сбросить прогресс?</h2>
+      <p>Баланс вернётся к 50 звёздам, история, рекорд и статистика будут удалены. Это действие нельзя отменить.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" data-close-modal>Отмена</button>
+        <button class="btn btn-danger" type="button" id="confirmResetBtn">Сбросить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+
+  <script src="js/core.js?v=3"></script>
+  <script src="js/slots.js?v=3"></script>
+  <script src="js/blackjack.js?v=3"></script>
+  <script src="js/roulette.js?v=3"></script>
+  <script src="js/mines.js?v=3"></script>
+  <script src="js/crash.js?v=3"></script>
+  <script src="js/upgrader.js?v=3"></script>
+</body>
+</html>
