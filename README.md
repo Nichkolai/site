@@ -119,7 +119,7 @@ import bot
 bot.api("setWebhook", {
     "url": "https://site-ten-sepia-56.vercel.app/api/telegram",
     "secret_token": "значение_WEBHOOK_SECRET",
-    "allowed_updates": ["message"],
+    "allowed_updates": ["message", "callback_query"],
 })
 ```
 
