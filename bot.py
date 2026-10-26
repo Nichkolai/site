@@ -269,6 +269,9 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
         f"Заявка: <code>{html.escape(request_id)}</code>\n"
         f"Время: {time.strftime('%d.%m.%Y %H:%M')}"
     )
+    player_id = str(user_id) if str(user_id).lstrip("-").isdigit() else ""
+    withdraw_callback = f"withdraw:paid:{player_id}" if player_id else "withdraw:paid"
+    reject_callback = f"withdraw:reject:{player_id}" if player_id else "withdraw:reject"
 
     delivered = 0
     for admin_id in ADMIN_IDS:
@@ -279,6 +282,12 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
                 "text": admin_text,
                 "parse_mode": "HTML",
                 "disable_web_page_preview": True,
+                "reply_markup": {
+                    "inline_keyboard": [[
+                        {"text": "✅ Выплачено", "callback_data": withdraw_callback},
+                        {"text": "❌ Отклонить", "callback_data": reject_callback},
+                    ]]
+                },
             })
             delivered += 1
         except BotAPIError as exc:
@@ -299,7 +308,118 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
     )
 
 
+def handle_callback_query(callback: dict) -> None:
+    callback_id = callback.get("id")
+    if not callback_id:
+        return
+
+    user = callback.get("from") or {}
+    user_id = str(user.get("id", ""))
+    if user_id not in ADMIN_IDS:
+        try:
+            api("answerCallbackQuery", {
+                "callback_query_id": callback_id,
+                "text": "Недостаточно прав.",
+                "show_alert": True,
+            })
+        except BotAPIError as exc:
+            log(f"[bot] callback: {exc.description}")
+        return
+
+    raw_action = callback.get("data") or ""
+    parts = raw_action.split(":")
+    if len(parts) < 2 or parts[0] != "withdraw" or parts[1] not in ("paid", "reject"):
+        try:
+            api("answerCallbackQuery", {
+                "callback_query_id": callback_id,
+                "text": "Неизвестное действие.",
+            })
+        except BotAPIError as exc:
+            log(f"[bot] callback: {exc.description}")
+        return
+
+    action = parts[1]
+    player_id = parts[2] if len(parts) >= 3 else ""
+
+    message = callback.get("message") or {}
+    chat_id = (message.get("chat") or {}).get("id")
+    message_id = message.get("message_id")
+    if not chat_id or not message_id:
+        try:
+            api("answerCallbackQuery", {
+                "callback_query_id": callback_id,
+                "text": "Сообщение с заявкой не найдено.",
+                "show_alert": True,
+            })
+        except BotAPIError as exc:
+            log(f"[bot] callback: {exc.description}")
+        return
+
+    original = message.get("text") or "Заявка на вывод"
+    if "✅ Выплачено" in original or "❌ Отклонено" in original:
+        try:
+            api("answerCallbackQuery", {
+                "callback_query_id": callback_id,
+                "text": "Заявка уже обработана.",
+            })
+        except BotAPIError as exc:
+            log(f"[bot] callback: {exc.description}")
+        return
+
+    username = user.get("username")
+    full_name = " ".join(
+        part for part in (user.get("first_name"), user.get("last_name")) if part
+    ).strip()
+    admin = f"@{username}" if username else full_name or f"ID {user_id}"
+    status = "✅ Выплачено" if action == "paid" else "❌ Отклонено"
+    updated = f"{original}\n\n<b>{status}</b>\nОбработал: {html.escape(admin)}"
+
+    try:
+        api("editMessageText", {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "text": updated,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+            "reply_markup": {"inline_keyboard": []},
+        })
+    except BotAPIError as exc:
+        log(f"[bot] callback edit: {exc.description}")
+        try:
+            api("answerCallbackQuery", {
+                "callback_query_id": callback_id,
+                "text": "Не удалось обновить заявку.",
+                "show_alert": True,
+            })
+        except BotAPIError as answer_exc:
+            log(f"[bot] callback: {answer_exc.description}")
+        return
+
+    try:
+        api("answerCallbackQuery", {
+            "callback_query_id": callback_id,
+            "text": f"Заявка: {status}",
+        })
+    except BotAPIError as exc:
+        log(f"[bot] callback: {exc.description}")
+
+    if player_id.lstrip("-").isdigit() and player_id != user_id:
+        try:
+            send_message(
+                int(player_id),
+                f"Ваша заявка на вывод: <b>{status}</b>.\n"
+                "Администратор обработал заявку.",
+            )
+        except BotAPIError as exc:
+            log(f"[bot] callback notify {player_id}: {exc.description}")
+
+
 def handle_update(update: dict) -> None:
+    callback = update.get("callback_query")
+    if callback:
+        handle_callback_query(callback)
+        return
+
     message = update.get("message")
     if not message:
         return
@@ -395,7 +515,7 @@ def poll_updates() -> None:
         try:
             updates = api(
                 "getUpdates",
-                {"offset": offset, "timeout": 25, "allowed_updates": ["message"]},
+                {"offset": offset, "timeout": 25, "allowed_updates": ["message", "callback_query"]},
                 timeout=40.0,
             )
         except BotAPIError as exc:
