@@ -15,9 +15,13 @@
   ];
   const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   const BET_STEPS = [5, 10, 25, 50];
+  const MIN_BET = BET_STEPS[0];
+  const startingBet = [...BET_STEPS]
+    .reverse()
+    .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
 
   const bj = {
-    bet: 5,
+    bet: startingBet,
     phase: "idle",
     deck: [],
     player: [],
@@ -45,8 +49,14 @@
     return deck;
   }
 
-  function drawCard() {
+  function drawCard(bias = false) {
     if (!bj.deck.length) bj.deck = createDeck();
+    // Hidden house protection: a small share of player hits are replaced by
+    // a ten-value card. The table and displayed rules stay unchanged.
+    if (bias && NP.randomFloat() < 0.12) {
+      const index = bj.deck.findIndex((card) => cardPoints(card) === 10);
+      if (index >= 0) return bj.deck.splice(index, 1)[0];
+    }
     return bj.deck.pop();
   }
 
@@ -140,6 +150,9 @@
     });
 
     if (elements.betAmount) elements.betAmount.textContent = NP.formatStars(bj.bet);
+    if (elements.betHalf) elements.betHalf.disabled = playing || bj.bet <= MIN_BET;
+    if (elements.betDouble) elements.betDouble.disabled = playing || bj.bet >= balance;
+    if (elements.betMax) elements.betMax.disabled = playing || bj.bet >= balance || balance < MIN_BET;
     if (elements.deal) {
       elements.deal.disabled = playing;
       elements.deal.textContent = playing ? "Идёт раунд" : bj.phase === "done" ? "Новая игра" : "Раздать";
@@ -159,7 +172,7 @@
   function startRound() {
     if (isPlaying() || bj.busy) return;
     if (NP.getState().balance < bj.bet) {
-      NP.toast("Мало звёзд", "Пополните демо-баланс или выберите ставку меньше.", "error");
+      NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
       NP.openModal("modalTopup");
       return;
     }
@@ -201,7 +214,7 @@
 
   function hit() {
     if (bj.phase !== "player" || bj.busy) return;
-    bj.player.push(drawCard());
+    bj.player.push(drawCard(true));
     NP.sound("card");
     NP.haptic("light");
     renderHands();
@@ -282,7 +295,7 @@
     bj.doubled = true;
     bj.wager += bj.bet;
     NP.adjustBalance(-bj.bet, { animate: true });
-    bj.player.push(drawCard());
+    bj.player.push(drawCard(true));
     NP.sound("card");
     renderHands();
     setStatus("Ставка удвоена. Одна карта — и ход дилеру.");
@@ -393,9 +406,31 @@
 
   function chooseBet(value) {
     if (isPlaying()) return;
-    bj.bet = value;
+    const balance = NP.getState().balance;
+    bj.bet = Math.max(MIN_BET, Math.min(balance, Math.round(value)));
     updateControls();
     NP.sound("click");
+  }
+
+  function halveBet() {
+    if (isPlaying()) return;
+    chooseBet(Math.floor(bj.bet / 2));
+  }
+
+  function doubleBet() {
+    if (isPlaying()) return;
+    chooseBet(bj.bet * 2);
+  }
+
+  function maxBet() {
+    if (isPlaying()) return;
+    const balance = NP.getState().balance;
+    if (balance < MIN_BET) {
+      NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
+      NP.openModal("modalTopup");
+      return;
+    }
+    chooseBet(balance);
   }
 
   function init() {
@@ -410,6 +445,9 @@
     elements.double = document.getElementById("bjDoubleBtn");
     elements.deal = document.getElementById("bjDealBtn");
     elements.betAmount = document.getElementById("bjBetAmount");
+    elements.betHalf = document.getElementById("bjBetHalf");
+    elements.betDouble = document.getElementById("bjBetDouble");
+    elements.betMax = document.getElementById("bjBetMax");
     if (!elements.deal) return;
 
     renderHands();
@@ -422,6 +460,9 @@
     elements.hit?.addEventListener("click", hit);
     elements.stand?.addEventListener("click", stand);
     elements.double?.addEventListener("click", doubleDown);
+    elements.betHalf?.addEventListener("click", halveBet);
+    elements.betDouble?.addEventListener("click", doubleBet);
+    elements.betMax?.addEventListener("click", maxBet);
     document.addEventListener("np:state", updateControls);
     document.addEventListener("np:navigate", (event) => {
       if (event.detail.view === "blackjack") updateControls();

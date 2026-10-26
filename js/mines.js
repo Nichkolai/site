@@ -10,11 +10,18 @@
   const CELLS = 25;
   const MINES = 5;
   const BET_STEPS = [5, 10, 25, 50];
+  const MIN_BET = BET_STEPS[0];
+  const startingBet = [...BET_STEPS]
+    .reverse()
+    .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
   const HOUSE_EDGE = 0.92;
   const MAX_MULTIPLIER = 250;
+  // Hidden safety reduction: occasionally a safe-looking cell turns into a
+  // mine, moving an unrevealed mine so the board still shows five.
+  const HIDDEN_MINE_CHANCE = 0.03;
 
   const game = {
-    bet: 5,
+    bet: startingBet,
     active: false,
     over: false,
     mines: new Set(),
@@ -28,6 +35,9 @@
     bet: null,
     betDown: null,
     betUp: null,
+    betHalf: null,
+    betDouble: null,
+    betMax: null,
     multiplier: null,
     next: null,
     status: null,
@@ -92,9 +102,14 @@
   }
 
   function updateUI() {
+    const balance = NP.getState().balance;
+    const locked = game.active || game.busy;
     if (elements.bet) elements.bet.textContent = NP.formatStars(game.bet);
-    if (elements.betDown) elements.betDown.disabled = game.active || game.busy || game.bet <= BET_STEPS[0];
-    if (elements.betUp) elements.betUp.disabled = game.active || game.busy || game.bet >= BET_STEPS[BET_STEPS.length - 1];
+    if (elements.betDown) elements.betDown.disabled = locked || game.bet <= MIN_BET;
+    if (elements.betUp) elements.betUp.disabled = locked || game.bet >= balance;
+    if (elements.betHalf) elements.betHalf.disabled = locked || game.bet <= MIN_BET;
+    if (elements.betDouble) elements.betDouble.disabled = locked || game.bet >= balance;
+    if (elements.betMax) elements.betMax.disabled = locked || game.bet >= balance || balance < MIN_BET;
     if (elements.multiplier) elements.multiplier.textContent = `${multiplierFor(game.picks).toFixed(2)}×`;
 
     if (elements.next) {
@@ -119,14 +134,49 @@
     }
   }
 
+  function betOptions() {
+    const balance = NP.getState().balance;
+    const options = BET_STEPS.filter((value) => value <= balance);
+    if (balance >= MIN_BET && !options.includes(balance)) options.push(balance);
+    return options.sort((a, b) => a - b);
+  }
+
+  function setBet(value) {
+    if (game.active || game.busy) return;
+    const balance = NP.getState().balance;
+    const next = Math.max(MIN_BET, Math.min(balance, Math.round(value)));
+    game.bet = Number.isFinite(next) ? next : MIN_BET;
+    updateUI();
+    NP.sound("click");
+  }
+
+  function halveBet() {
+    setBet(Math.floor(game.bet / 2));
+  }
+
+  function doubleBet() {
+    setBet(game.bet * 2);
+  }
+
+  function maxBet() {
+    if (game.active || game.busy) return;
+    const balance = NP.getState().balance;
+    if (balance < MIN_BET) {
+      NP.toast("Мало звёзд", "Пополните баланс, чтобы продолжить.", "error");
+      NP.openModal("modalTopup");
+      return;
+    }
+    setBet(balance);
+  }
+
   function changeBet(direction) {
     if (game.active || game.busy) return;
-    const currentIndex = BET_STEPS.indexOf(game.bet);
-    const nextIndex = Math.min(
-      BET_STEPS.length - 1,
-      Math.max(0, (currentIndex === -1 ? 0 : currentIndex) + direction)
-    );
-    game.bet = BET_STEPS[nextIndex];
+    const options = betOptions();
+    const next = direction > 0
+      ? options.find((value) => value > game.bet)
+      : [...options].reverse().find((value) => value < game.bet);
+    if (!next) return;
+    game.bet = next;
     updateUI();
     NP.sound("click");
   }
@@ -134,7 +184,7 @@
   function startRound() {
     if (game.active || game.busy) return;
     if (NP.getState().balance < game.bet) {
-      NP.toast("Мало звёзд", "Пополните демо-баланс или выберите ставку меньше.", "error");
+      NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
       NP.openModal("modalTopup");
       return;
     }
@@ -198,6 +248,15 @@
     const index = Number(cell.dataset.index);
     if (cell.classList.contains("safe") || cell.classList.contains("mine")) return;
 
+    if (!game.mines.has(index) && NP.randomFloat() < HIDDEN_MINE_CHANCE) {
+      const mineList = Array.from(game.mines).filter((mine) => mine !== index);
+      if (mineList.length) {
+        const moved = mineList[NP.randomInt(mineList.length)];
+        game.mines.delete(moved);
+        game.mines.add(index);
+      }
+    }
+
     if (game.mines.has(index)) {
       game.busy = true;
       game.active = false;
@@ -247,6 +306,9 @@
     elements.bet = document.getElementById("minesBet");
     elements.betDown = document.getElementById("minesBetDown");
     elements.betUp = document.getElementById("minesBetUp");
+    elements.betHalf = document.getElementById("minesBetHalf");
+    elements.betDouble = document.getElementById("minesBetDouble");
+    elements.betMax = document.getElementById("minesBetMax");
     elements.multiplier = document.getElementById("minesMultiplier");
     elements.next = document.getElementById("minesNext");
     elements.status = document.getElementById("minesStatus");
@@ -261,6 +323,9 @@
     });
     elements.betDown?.addEventListener("click", () => changeBet(-1));
     elements.betUp?.addEventListener("click", () => changeBet(1));
+    elements.betHalf?.addEventListener("click", halveBet);
+    elements.betDouble?.addEventListener("click", doubleBet);
+    elements.betMax?.addEventListener("click", maxBet);
     elements.action?.addEventListener("click", handleAction);
     document.addEventListener("np:state", updateUI);
     document.addEventListener("np:navigate", (event) => {

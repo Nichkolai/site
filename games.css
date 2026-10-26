@@ -575,6 +575,7 @@
 
 .board-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -584,7 +585,7 @@
 .board-head h2 { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
 .board-head h2 strong { color: var(--gold); font-size: 13px; }
 
-.chip-picker { display: flex; gap: 4px; }
+.chip-picker { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 
 .roulette-chip {
   display: grid;
@@ -1005,4 +1006,116 @@
   .playing-card { width: 60px; height: 84px; }
   .hand-cards { min-height: 84px; }
   .roulette-numbers button { height: 36px; font-size: 11.5px; }
+}
+
+/* ---------- readable game UI ---------- */
+.game-head h1 { font-size: 30px; }
+.game-head p { font-size: 13.5px; }
+.stepper span { font-size: 10.5px; }
+.stepper strong { font-size: 14.5px; }
+.stepper button { min-width: 34px; min-height: 34px; font-size: 17px; }
+.panel-note { font-size: 12px; }
+.slot-win span { font-size: 11px; }
+.slot-win strong { font-size: 13px; }
+.spin-btn strong { font-size: 14.5px; }
+.spin-btn small { font-size: 10px; }
+.paytable-item span { font-size: 11px; }
+.paytable-item strong { font-size: 12.5px; }
+.bj-score span { font-size: 10.5px; }
+.bj-score strong { font-size: 16px; }
+.bet-line > span { font-size: 11px; }
+.bet-line > span strong { font-size: 13.5px; }
+.bj-actions .btn { font-size: 12.5px; }
+.result-line > span { font-size: 10px; }
+.result-line small { font-size: 11px; }
+.result-line small strong { font-size: 11.5px; }
+.last-row > span { font-size: 10px; }
+.last-row i { font-size: 10.5px; }
+.board-head h2 { font-size: 16px; }
+.board-head h2 strong { font-size: 14px; }
+.roulette-numbers button { font-size: 10.5px; }
+.roulette-chip { font-size: 10px; }
+.dozens button, .even-bets button { font-size: 10.5px; }
+.mines-top span { font-size: 10px; }
+.mines-top strong { font-size: 18px; }
+.mines-status, .game-status { font-size: 12px; line-height: 1.5; }
+.crash-status { font-size: 12px; }
+.crash-history i { font-size: 10px; }
+.up-head span { font-size: 10px; }
+.up-head strong { font-size: 16px; }
+.up-targets button { font-size: 11px; }
+.up-result { font-size: 12px; }
+.slot-max, .text-btn { font-size: 12px; }
+
+@media (max-width: 360px) {
+  .game-head h1 { font-size: 27px; }
+  .roulette-numbers button { font-size: 10px; }
+  .roulette-chip { font-size: 9.5px; }
+  .dozens button, .even-bets button { font-size: 10px; }
+}
+/* ---------- final readability pass: bet controls ---------- */
+.stepper { height: 54px; }
+.stepper span { font-size: 12.5px; font-weight: 600; }
+.stepper strong { font-size: 18px; }
+.stepper > button { width: 42px; font-size: 22px; }
+.bet-tools button { min-height: 44px; font-size: 15px; }
+.bet-tools-wide { margin-top: 9px; }
+.game-status { font-size: 13px; min-height: 34px; }
+.panel-note { font-size: 13px; }
+.game-head p { font-size: 14px; }
+.text-btn { font-size: 12.5px; min-height: 32px; }
+.slot-win span { font-size: 12px; }
+.slot-win strong { font-size: 14px; }
+.spin-btn strong { font-size: 16px; }
+.spin-btn small { font-size: 11.5px; }
+.paytable-item span { font-size: 12px; }
+.paytable-item strong { font-size: 14px; }
+.bj-score span { font-size: 12px; }
+.bj-score strong { font-size: 18px; }
+.bet-line > span { font-size: 12.5px; }
+.bet-line > span strong { font-size: 15px; }
+.bj-actions .btn { font-size: 14px; }
+.result-line > span { font-size: 11.5px; }
+.result-line small { font-size: 12.5px; }
+.result-line small strong { font-size: 13px; }
+.last-row > span { font-size: 11.5px; }
+.last-row i { font-size: 12px; }
+.board-head h2 { font-size: 18px; }
+.board-head h2 strong { font-size: 16px; }
+.roulette-numbers button { font-size: 11.5px; }
+.roulette-chip { font-size: 11px; }
+.dozens button, .even-bets button { font-size: 12px; }
+.mines-top span { font-size: 11.5px; }
+.mines-top strong { font-size: 20px; }
+.crash-status { font-size: 13px; }
+.crash-history i { font-size: 11px; }
+.up-head span { font-size: 11.5px; }
+.up-head strong { font-size: 18px; }
+.up-targets button { font-size: 12.5px; }
+.up-result { font-size: 13px; }
+.bet-chips .bet-chip { min-height: 38px; font-size: 14px; }
+
+@media (max-width: 360px) {
+  .stepper { height: 52px; }
+  .stepper span { font-size: 12px; }
+  .stepper strong { font-size: 17px; }
+  .stepper > button { width: 38px; }
+  .bet-tools button { font-size: 14px; }
+  .roulette-numbers button { font-size: 10.5px; }
+}
+/* Final large bet controls */
+.stepper { height: 58px; }
+.stepper span { font-size: 14px; }
+.stepper strong { font-size: 20px; }
+.stepper > button { width: 44px; font-size: 24px; }
+.bet-tools button { min-height: 46px; font-size: 16px; }
+.game-status { font-size: 13.5px; }
+.panel-note { font-size: 13.5px; }
+
+@media (max-width: 360px) {
+  .stepper { height: 56px; }
+  .stepper span { font-size: 13px; }
+  .stepper strong { font-size: 19px; }
+  .stepper > button { width: 40px; }
+  .bet-tools button { font-size: 15px; min-height: 44px; }
 }

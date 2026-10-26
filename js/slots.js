@@ -7,17 +7,23 @@
   const NP = window.NP;
   if (!NP) return;
 
+  // Weights are intentionally tuned below the displayed paytable RTP.
+  // The paytable stays unchanged for players.
   const SYMBOLS = [
-    { id: "cherry", icon: "🍒", weight: 32, triple: 10, name: "Вишня" },
-    { id: "lemon", icon: "🍋", weight: 25, triple: 16, name: "Лимон" },
-    { id: "bell", icon: "🔔", weight: 18, triple: 24, name: "Колокол" },
-    { id: "star", icon: "⭐", weight: 14, triple: 50, name: "Звезда" },
-    { id: "seven", icon: "7", weight: 8, triple: 100, name: "Семёрка" },
-    { id: "diamond", icon: "💎", weight: 3, triple: 240, name: "Алмаз" }
+    { id: "cherry", icon: "🍒", weight: 30, triple: 10, name: "Вишня" },
+    { id: "lemon", icon: "🍋", weight: 23, triple: 16, name: "Лимон" },
+    { id: "bell", icon: "🔔", weight: 19, triple: 24, name: "Колокол" },
+    { id: "star", icon: "⭐", weight: 13, triple: 50, name: "Звезда" },
+    { id: "seven", icon: "7", weight: 9, triple: 100, name: "Семёрка" },
+    { id: "diamond", icon: "💎", weight: 6, triple: 240, name: "Алмаз" }
   ];
 
   const TOTAL_WEIGHT = SYMBOLS.reduce((sum, symbol) => sum + symbol.weight, 0);
-  const BET_STEPS = [1, 2, 5, 10];
+  const BET_STEPS = [1, 2, 5, 10, 25, 50];
+  const MIN_BET = BET_STEPS[0];
+  const startingBet = [...BET_STEPS]
+    .reverse()
+    .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
   const LINES = [
     [0, 1, 2],
     [3, 4, 5],
@@ -27,7 +33,7 @@
   ];
 
   const slot = {
-    bet: 2,
+    bet: startingBet,
     spinning: false,
     grid: [],
     wins: new Set()
@@ -41,6 +47,8 @@
     spin: null,
     betDown: null,
     betUp: null,
+    half: null,
+    double: null,
     max: null
   };
 
@@ -103,17 +111,37 @@
     applyWins();
   }
 
+  function betOptions() {
+    const balance = NP.getState().balance;
+    const options = BET_STEPS.filter((step) => step <= balance);
+    if (balance >= MIN_BET && !options.includes(balance)) options.push(balance);
+    return options.sort((a, b) => a - b);
+  }
+
+  function setBet(value) {
+    const balance = NP.getState().balance;
+    const next = Math.max(MIN_BET, Math.min(balance, Math.round(value)));
+    slot.bet = Number.isFinite(next) ? next : MIN_BET;
+    updateBetUI();
+    NP.sound("click");
+  }
+
   function updateBetUI() {
+    const balance = NP.getState().balance;
     if (elements.bet) elements.bet.textContent = NP.formatStars(slot.bet);
-    if (elements.betDown) elements.betDown.disabled = slot.spinning || slot.bet <= BET_STEPS[0];
-    if (elements.betUp) elements.betUp.disabled = slot.spinning || slot.bet >= BET_STEPS[BET_STEPS.length - 1];
-    if (elements.max) elements.max.disabled = slot.spinning;
+    if (elements.betDown) elements.betDown.disabled = slot.spinning || slot.bet <= MIN_BET;
+    if (elements.betUp) elements.betUp.disabled = slot.spinning || slot.bet >= balance;
+    if (elements.half) elements.half.disabled = slot.spinning || slot.bet <= MIN_BET;
+    if (elements.double) elements.double.disabled = slot.spinning || slot.bet >= balance;
+    if (elements.max) elements.max.disabled = slot.spinning || slot.bet >= balance || balance < MIN_BET;
   }
 
   function setControlsDisabled(disabled) {
-    if (elements.betDown) elements.betDown.disabled = disabled || slot.bet <= BET_STEPS[0];
-    if (elements.betUp) elements.betUp.disabled = disabled || slot.bet >= BET_STEPS[BET_STEPS.length - 1];
-    if (elements.max) elements.max.disabled = disabled;
+    if (elements.betDown) elements.betDown.disabled = disabled || slot.bet <= MIN_BET;
+    if (elements.betUp) elements.betUp.disabled = disabled || slot.bet >= NP.getState().balance;
+    if (elements.half) elements.half.disabled = disabled || slot.bet <= MIN_BET;
+    if (elements.double) elements.double.disabled = disabled || slot.bet >= NP.getState().balance;
+    if (elements.max) elements.max.disabled = disabled || slot.bet >= NP.getState().balance;
     if (elements.spin) {
       elements.spin.disabled = disabled;
       elements.spin.classList.toggle("spinning", disabled);
@@ -126,28 +154,35 @@
 
   function changeBet(direction) {
     if (slot.spinning) return;
-    const currentIndex = BET_STEPS.indexOf(slot.bet);
-    const nextIndex = Math.min(
-      BET_STEPS.length - 1,
-      Math.max(0, (currentIndex === -1 ? 1 : currentIndex) + direction)
-    );
-    slot.bet = BET_STEPS[nextIndex];
+    const options = betOptions();
+    const next = direction > 0
+      ? options.find((value) => value > slot.bet)
+      : [...options].reverse().find((value) => value < slot.bet);
+    if (!next) return;
+    slot.bet = next;
     updateBetUI();
     NP.sound("click");
+  }
+
+  function halveBet() {
+    if (slot.spinning) return;
+    setBet(Math.floor(slot.bet / 2));
+  }
+
+  function doubleBet() {
+    if (slot.spinning) return;
+    setBet(slot.bet * 2);
   }
 
   function chooseMaxBet() {
     if (slot.spinning) return;
     const balance = NP.getState().balance;
-    const affordable = BET_STEPS.filter((step) => step <= balance);
-    if (!affordable.length) {
-      NP.toast("Мало звёзд", "Пополните демо-баланс, чтобы продолжить.", "error");
+    if (balance < MIN_BET) {
+      NP.toast("Мало звёзд", "Пополните баланс, чтобы продолжить.", "error");
       NP.openModal("modalTopup");
       return;
     }
-    slot.bet = affordable[affordable.length - 1];
-    updateBetUI();
-    NP.sound("click");
+    setBet(balance);
   }
 
   function evaluateGrid(grid, bet) {
@@ -319,6 +354,8 @@
     elements.spin = document.getElementById("spinBtn");
     elements.betDown = document.getElementById("slotBetDown");
     elements.betUp = document.getElementById("slotBetUp");
+    elements.half = document.getElementById("slotBetHalf");
+    elements.double = document.getElementById("slotBetDouble");
     elements.max = document.getElementById("slotMax");
 
     renderInitial();
@@ -326,6 +363,8 @@
     elements.spin?.addEventListener("click", spin);
     elements.betDown?.addEventListener("click", () => changeBet(-1));
     elements.betUp?.addEventListener("click", () => changeBet(1));
+    elements.half?.addEventListener("click", halveBet);
+    elements.double?.addEventListener("click", doubleBet);
     elements.max?.addEventListener("click", chooseMaxBet);
 
     document.addEventListener("keydown", (event) => {

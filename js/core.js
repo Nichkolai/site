@@ -6,7 +6,9 @@
 
   const STORAGE_KEY = "kaz_demo_v1";
   const START_BALANCE = 50;
+  const DEFAULT_BET = 50;
   const DAILY_BONUS = 10;
+  const MIN_WITHDRAW = 50;
   const MAX_HISTORY = 100;
 
   const GAME_VIEWS = new Set(["slots", "blackjack", "roulette", "mines", "crash", "upgrader"]);
@@ -47,6 +49,7 @@
       wagered: 0,
       biggestWin: 0,
       history: [],
+      withdrawals: [],
       lastDaily: null,
       sound: true
     };
@@ -80,12 +83,26 @@
             }))
         : [];
 
+      const withdrawals = Array.isArray(saved.withdrawals)
+        ? saved.withdrawals
+            .filter((entry) => entry && Number.isFinite(Number(entry.amount)) && Number(entry.amount) > 0)
+            .slice(0, 20)
+            .map((entry) => ({
+              id: String(entry.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).slice(0, 60),
+              amount: Math.max(0, Math.round(Number(entry.amount))),
+              contact: String(entry.contact || "").slice(0, 80),
+              at: Number(entry.at) || Date.now(),
+              status: "sent"
+            }))
+        : [];
+
       return {
         balance: Math.max(0, Math.round(safeNumber(saved.balance, START_BALANCE))),
         games: Math.max(0, Math.round(safeNumber(saved.games))),
         wagered: Math.max(0, Math.round(safeNumber(saved.wagered))),
         biggestWin: Math.max(0, Math.round(safeNumber(saved.biggestWin))),
         history,
+        withdrawals,
         lastDaily: typeof saved.lastDaily === "string" ? saved.lastDaily : null,
         sound: saved.sound !== false
       };
@@ -101,6 +118,7 @@
   let telegram = null;
   let suspendHash = false;
   let dailyTimer = 0;
+  let withdrawLocked = false;
 
   function saveState() {
     try {
@@ -611,7 +629,7 @@
     if (back) back.hidden = !GAME_VIEWS.has(target);
     document.body.classList.toggle("is-game", GAME_VIEWS.has(target));
 
-    document.title = target === "lobby" ? "KAZ — демо-казино" : `${VIEW_TITLES[target]} — KAZ`;
+    document.title = target === "lobby" ? "KAZ - казино" : `${VIEW_TITLES[target]} - KAZ`;
 
     if (push && !suspendHash && location.hash !== `#${target}`) {
       window.history.pushState({ view: target }, "", `#${target}`);
@@ -691,8 +709,219 @@
     sound("cash");
     haptic("success");
     confetti(28);
-    toast("Баланс пополнен", `+${formatStars(value)} виртуальных звёзд.`);
+    toast("Баланс пополнен", `+${formatStars(value)} звёзд.`);
     document.dispatchEvent(new CustomEvent("np:state"));
+  }
+
+  function telegramUser() {
+    try {
+      return telegram && telegram.initDataUnsafe ? telegram.initDataUnsafe.user || null : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function telegramIdentity(user) {
+    if (!user) return "";
+    if (user.username) return `@${user.username}`;
+    return [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+  }
+
+  function withdrawalId() {
+    return `W-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  }
+
+  function withdrawalText(request) {
+    const date = new Date(request.at).toLocaleString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    return [
+      "Заявка на вывод KAZ",
+      `Сумма: ${formatStars(request.amount)} ★`,
+      `Контакт: ${request.contact}`,
+      `Заявка: ${request.id}`,
+      `Дата: ${date}`
+    ].join("\n");
+  }
+
+  function updateWithdrawUI() {
+    const input = document.getElementById("withdrawAmount");
+    const contactInput = document.getElementById("withdrawContact");
+    const submit = document.getElementById("withdrawSubmitBtn");
+    const footnote = document.getElementById("withdrawFootnote");
+    const amount = Math.round(safeNumber(input && input.value));
+    const identity = telegramIdentity(telegramUser());
+    const contact = identity || (contactInput && contactInput.value || "").trim();
+    const enough = state.balance >= MIN_WITHDRAW;
+    const valid = !withdrawLocked
+      && enough
+      && amount >= MIN_WITHDRAW
+      && amount <= state.balance
+      && contact.length >= 2;
+
+    if (input) input.max = String(Math.max(0, state.balance));
+    if (submit) {
+      submit.disabled = !valid;
+      submit.textContent = withdrawLocked ? "Заявка отправлена" : "Отправить заявку";
+    }
+    if (footnote) {
+      if (withdrawLocked) footnote.textContent = "Заявка создана · звёзды зарезервированы";
+      else if (!enough) footnote.textContent = `Минимум ${MIN_WITHDRAW} ★ · недостаточно звёзд`;
+      else if (!amount) footnote.textContent = `Минимум ${MIN_WITHDRAW} ★ · решение принимает администратор`;
+      else if (amount < MIN_WITHDRAW) footnote.textContent = `Минимум ${MIN_WITHDRAW} ★`;
+      else if (amount > state.balance) footnote.textContent = "Сумма больше баланса";
+      else if (contact.length < 2) footnote.textContent = "Укажите контакт для связи";
+      else footnote.textContent = `Заявка на ${formatStars(amount)} ★ · решение принимает администратор`;
+    }
+  }
+
+  function openWithdraw() {
+    withdrawLocked = false;
+    const result = document.getElementById("withdrawResult");
+    const amountInput = document.getElementById("withdrawAmount");
+    const contactInput = document.getElementById("withdrawContact");
+    const contactField = document.getElementById("withdrawContactField");
+    const userBox = document.getElementById("withdrawUser");
+    const userLabel = document.getElementById("withdrawUserLabel");
+    const user = telegramUser();
+    const identity = telegramIdentity(user);
+
+    if (result) {
+      result.hidden = true;
+      result.replaceChildren();
+    }
+    if (identity) {
+      if (contactInput) contactInput.value = identity;
+      if (contactField) contactField.hidden = true;
+      if (userBox) userBox.hidden = false;
+      if (userLabel) {
+        userLabel.textContent = user && user.id ? `${identity} · ID ${user.id}` : identity;
+      }
+    } else {
+      if (contactField) contactField.hidden = false;
+      if (userBox) userBox.hidden = true;
+      if (contactInput && !contactInput.value.trim()) contactInput.value = "";
+    }
+    if (amountInput) {
+      amountInput.value = state.balance >= MIN_WITHDRAW
+        ? String(Math.min(state.balance, 100))
+        : "";
+    }
+    updateWithdrawUI();
+    openModal("modalWithdraw");
+  }
+
+  function sendWithdrawRequest(request) {
+    if (!telegram || typeof telegram.sendData !== "function") return "manual";
+    try {
+      telegram.sendData(JSON.stringify({
+        type: "withdraw",
+        id: request.id,
+        amount: request.amount,
+        contact: request.contact,
+        at: request.at
+      }));
+      return "sent";
+    } catch (error) {
+      return "manual";
+    }
+  }
+
+  function copyWithdrawText(text) {
+    const done = () => toast("Скопировано", "Текст заявки можно отправить администратору.", "info");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => {
+        const area = document.createElement("textarea");
+        area.value = text;
+        document.body.append(area);
+        area.select();
+        try { document.execCommand("copy"); done(); } catch (error) { /* Ignore. */ }
+        area.remove();
+      });
+      return;
+    }
+    const area = document.createElement("textarea");
+    area.value = text;
+    document.body.append(area);
+    area.select();
+    try { document.execCommand("copy"); done(); } catch (error) { /* Ignore. */ }
+    area.remove();
+  }
+
+  function shareWithdrawText(text) {
+    const url = `https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(text)}`;
+    try {
+      if (telegram && typeof telegram.openTelegramLink === "function") {
+        telegram.openTelegramLink(url);
+        return;
+      }
+    } catch (error) {
+      /* Fall through to the browser share window. */
+    }
+    window.open(url, "_blank", "noopener");
+  }
+
+  function showWithdrawResult(request, mode) {
+    const result = document.getElementById("withdrawResult");
+    if (!result) return;
+    const text = withdrawalText(request);
+    result.hidden = false;
+    result.innerHTML = `
+      <p>Заявка <strong>${escapeHtml(request.id)}</strong> на <strong>${formatStars(request.amount)} ★</strong> создана. ${mode === "sent" ? "Отправлена администратору." : "Скопируйте текст и отправьте администратору."}</p>
+      <div class="withdraw-actions">
+        <button class="btn btn-soft" type="button" id="copyWithdrawBtn">Скопировать</button>
+        <button class="btn btn-ghost" type="button" id="shareWithdrawBtn">Отправить</button>
+      </div>
+      <textarea id="withdrawText" readonly>${escapeHtml(text)}</textarea>
+    `;
+    document.getElementById("copyWithdrawBtn")?.addEventListener("click", () => copyWithdrawText(text));
+    document.getElementById("shareWithdrawBtn")?.addEventListener("click", () => shareWithdrawText(text));
+  }
+
+  function submitWithdraw() {
+    if (withdrawLocked) return;
+    const input = document.getElementById("withdrawAmount");
+    const contactInput = document.getElementById("withdrawContact");
+    const amount = Math.round(safeNumber(input && input.value));
+    const identity = telegramIdentity(telegramUser());
+    const contact = identity || (contactInput && contactInput.value || "").trim();
+
+    if (state.balance < MIN_WITHDRAW) {
+      toast("Мало звёзд", `Для вывода нужно минимум ${MIN_WITHDRAW} ★.`, "error");
+      return;
+    }
+    if (amount < MIN_WITHDRAW || amount > state.balance) {
+      toast("Проверьте сумму", `Введите сумму от ${MIN_WITHDRAW} до ${formatStars(state.balance)} ★.`, "error");
+      return;
+    }
+    if (contact.length < 2) {
+      toast("Укажите контакт", "Напишите @username или другой способ связи.", "error");
+      return;
+    }
+
+    const request = {
+      id: withdrawalId(),
+      amount,
+      contact: contact.slice(0, 80),
+      at: Date.now(),
+      status: "sent"
+    };
+    state.withdrawals.unshift(request);
+    state.withdrawals = state.withdrawals.slice(0, 20);
+    withdrawLocked = true;
+    adjustBalance(-amount, { animate: true });
+    saveState();
+    sound("cash");
+    haptic("success");
+    const mode = sendWithdrawRequest(request);
+    showWithdrawResult(request, mode);
+    updateWithdrawUI();
+    document.dispatchEvent(new CustomEvent("np:state"));
+    toast("Заявка создана", `${formatStars(amount)} ★ зарезервированы для вывода.`, "info");
   }
 
   function confirmReset() {
@@ -727,6 +956,7 @@
         if (action.dataset.action === "daily") openDaily();
         if (action.dataset.action === "daily-claim") claimDaily();
         if (action.dataset.action === "topup") openModal("modalTopup");
+        if (action.dataset.action === "withdraw") openWithdraw();
         return;
       }
 
@@ -746,6 +976,27 @@
     document.getElementById("claimBonusBtn")?.addEventListener("click", claimDaily);
     document.getElementById("openResetBtn2")?.addEventListener("click", () => openModal("modalReset"));
     document.getElementById("confirmResetBtn")?.addEventListener("click", confirmReset);
+
+    const withdrawAmount = document.getElementById("withdrawAmount");
+    withdrawAmount?.addEventListener("input", updateWithdrawUI);
+    document.getElementById("withdrawContact")?.addEventListener("input", updateWithdrawUI);
+    document.getElementById("withdrawSubmitBtn")?.addEventListener("click", submitWithdraw);
+    document.querySelectorAll("[data-withdraw-quick]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (withdrawLocked) return;
+        const input = document.getElementById("withdrawAmount");
+        if (!input) return;
+        if (button.dataset.withdrawQuick === "max") {
+          input.value = state.balance >= MIN_WITHDRAW ? String(state.balance) : "";
+        } else {
+          const current = Math.round(safeNumber(input.value)) || state.balance;
+          input.value = String(Math.max(MIN_WITHDRAW, Math.floor(current / 2)));
+        }
+        updateWithdrawUI();
+        sound("click");
+      });
+    });
+    document.addEventListener("np:state", updateWithdrawUI);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && document.querySelector(".modal.open")) {
@@ -786,6 +1037,7 @@
   window.NP = Object.freeze({
     getState: () => state,
     getCurrentView: () => currentView,
+    DEFAULT_BET,
     saveState,
     formatStars,
     formatChips: formatStars,

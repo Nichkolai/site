@@ -1187,3 +1187,273 @@ img, canvas { display: block; max-width: 100%; }
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------- readable UI / quick bet controls ---------- */
+:root {
+  --muted: #a6b0c0;
+  --muted-2: #8793a5;
+}
+
+body {
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.hero p { font-size: 13px; }
+.hero-actions .btn { min-height: 44px; font-size: 13.5px; }
+.game-card { min-height: 112px; padding: 13px; }
+.game-copy strong { font-size: 14px; }
+.game-copy small { font-size: 11.5px; line-height: 1.35; }
+.daily-copy strong { font-size: 14px; }
+.daily-copy small { font-size: 11.5px; }
+.section-head h2 { font-size: 18px; }
+.section-head > span,
+.section-head > a { font-size: 11.5px; }
+.recent-main strong { font-size: 13px; }
+.recent-main span { font-size: 11px; }
+.recent-delta { font-size: 13px; }
+.app-footer { font-size: 10.5px; }
+.kicker { font-size: 10px; }
+.game-head h1 { font-size: 29px; }
+.game-head p { font-size: 13px; }
+.stat-card div span { font-size: 10px; }
+.stat-card div strong { font-size: 15px; }
+.tab { font-size: 11px; }
+.tab .icon { width: 22px; height: 22px; }
+.modal-card > p { font-size: 13px; }
+.modal-footnote { font-size: 10.5px; }
+.toast strong { font-size: 13px; }
+.toast p { font-size: 11px; }
+.panel-note { font-size: 11.5px; line-height: 1.5; }
+
+.bet-tools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bet-tools button {
+  min-height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 800;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.bet-tools button:active {
+  background: rgba(200, 255, 94, 0.12);
+  border-color: rgba(200, 255, 94, 0.35);
+}
+
+.bet-tools button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bet-tools-wide { margin-top: 8px; }
+
+.modal-divider {
+  height: 1px;
+  margin: 16px 0 13px;
+  background: var(--line);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.form-field > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.form-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel-3);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form-field input::placeholder { color: var(--muted-2); font-weight: 400; }
+.form-field input:focus {
+  outline: none;
+  border-color: rgba(200, 255, 94, 0.5);
+  box-shadow: 0 0 0 3px rgba(200, 255, 94, 0.08);
+}
+
+.withdraw-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+  margin: 14px 0 2px;
+  padding: 12px;
+  border: 1px solid rgba(255, 209, 102, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 209, 102, 0.05);
+}
+
+.withdraw-summary span { color: var(--muted); font-size: 12px; }
+.withdraw-summary strong { font-size: 24px; line-height: 1; }
+.withdraw-summary small { color: var(--gold); font-size: 14px; }
+.withdraw-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 7px; }
+
+.withdraw-result {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(200, 255, 94, 0.2);
+  border-radius: 12px;
+  background: rgba(200, 255, 94, 0.05);
+  text-align: left;
+}
+
+.withdraw-result p { color: var(--text); font-size: 12.5px; line-height: 1.5; }
+.withdraw-result textarea {
+  width: 100%;
+  min-height: 90px;
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-3);
+  color: var(--muted);
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  resize: vertical;
+}
+
+.withdraw-actions { display: flex; gap: 7px; margin-top: 9px; }
+.withdraw-actions .btn { flex: 1; min-height: 38px; padding: 0 10px; font-size: 11.5px; }
+
+@media (max-width: 360px) {
+  body { font-size: 14.5px; }
+  .game-copy strong { font-size: 13.5px; }
+  .game-copy small { font-size: 11px; }
+  .tab { font-size: 10.5px; }
+  .bet-tools button { font-size: 12px; }
+}
+/* ---------- larger, clearer text ---------- */
+body { font-size: 16px; }
+.hero p { font-size: 14px; }
+.hero-actions .btn { font-size: 14px; }
+.game-copy strong { font-size: 15px; }
+.game-copy small { font-size: 12px; }
+.daily-copy strong { font-size: 15px; }
+.daily-copy small { font-size: 12px; }
+.section-head h2 { font-size: 19px; }
+.section-head > span,
+.section-head > a { font-size: 12px; }
+.recent-main strong { font-size: 14px; }
+.recent-main span { font-size: 12px; }
+.recent-delta { font-size: 14px; }
+.kicker { font-size: 11px; }
+.stat-card div span { font-size: 11px; }
+.stat-card div strong { font-size: 16px; }
+.tab { font-size: 12px; }
+.modal-card > p { font-size: 14px; }
+.modal-footnote { font-size: 11.5px; }
+.toast p { font-size: 12px; }
+.panel-note { font-size: 12px; }
+.form-field > span { font-size: 13px; }
+.bet-tools button { min-height: 40px; font-size: 13.5px; }
+.withdraw-summary strong { font-size: 27px; }
+.withdraw-summary span { font-size: 13px; }
+.withdraw-result p { font-size: 13px; }
+.withdraw-result textarea { font-size: 12px; }
+.withdraw-actions .btn { font-size: 12.5px; }
+
+@media (max-width: 360px) {
+  body { font-size: 15.5px; }
+  .game-copy strong { font-size: 14px; }
+  .game-copy small { font-size: 11.5px; }
+  .tab { font-size: 11.5px; }
+}
+/* ---------- final readability pass ---------- */
+.game-copy strong { font-size: 15.5px; }
+.game-copy small { font-size: 12.5px; }
+.daily-copy strong { font-size: 15.5px; }
+.daily-copy small { font-size: 12.5px; }
+.stat-card div span { font-size: 12px; }
+.stat-card div strong { font-size: 17px; }
+.section-head h2 { font-size: 20px; }
+.section-head > span,
+.section-head > a { font-size: 12.5px; }
+.recent-main strong { font-size: 14.5px; }
+.recent-main span { font-size: 12.5px; }
+.recent-delta { font-size: 14.5px; }
+.tab { font-size: 12.5px; }
+.modal-card > p { font-size: 14.5px; }
+.modal-footnote { font-size: 12px; }
+.form-field > span { font-size: 13.5px; }
+.form-field input { font-size: 17px; }
+.bet-tools button { font-size: 15px; }
+.toast strong { font-size: 14px; }
+.toast p { font-size: 12.5px; }
+.withdraw-entry {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  margin-top: 9px;
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 209, 102, 0.2);
+  border-radius: 13px;
+  background: rgba(255, 209, 102, 0.055);
+  color: var(--text);
+  text-align: left;
+}
+
+.withdraw-entry:active { background: rgba(255, 209, 102, 0.1); }
+.withdraw-entry-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 10px;
+  background: rgba(255, 209, 102, 0.1);
+  color: var(--gold);
+}
+.withdraw-entry-icon .icon { width: 18px; height: 18px; }
+.withdraw-entry-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.withdraw-entry-copy strong { font-size: 14.5px; line-height: 1.2; }
+.withdraw-entry-copy small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.withdraw-entry-arrow { width: 18px; height: 18px; flex: none; color: var(--muted); }
+
+@media (max-width: 360px) {
+  .withdraw-entry-copy strong { font-size: 14px; }
+  .withdraw-entry-copy small { font-size: 12px; }
+}
+.withdraw-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.withdraw-user span { color: var(--muted); font-size: 12.5px; }
+.withdraw-user strong { overflow: hidden; color: var(--text); font-size: 13.5px; text-overflow: ellipsis; white-space: nowrap; }

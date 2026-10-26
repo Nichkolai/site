@@ -7,13 +7,17 @@
   const NP = window.NP;
   if (!NP) return;
 
-  const BET_STEPS = [2, 5, 10, 25];
-  const HOUSE_EDGE = 0.93;
+  const BET_STEPS = [2, 5, 10, 25, 50];
+  const MIN_BET = BET_STEPS[0];
+  const startingBet = [...BET_STEPS]
+    .reverse()
+    .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
+  const HOUSE_EDGE = 0.84;
   const MAX_CRASH = 50;
   const GROWTH = 0.22;
 
   const game = {
-    bet: 2,
+    bet: startingBet,
     phase: "idle",
     wager: 0,
     crashAt: 1,
@@ -33,6 +37,9 @@
     bet: null,
     betDown: null,
     betUp: null,
+    betHalf: null,
+    betDouble: null,
+    betMax: null,
     history: null
   };
 
@@ -58,9 +65,13 @@
     const value = running ? currentMultiplier(elapsed) : game.phase === "done" ? game.crashAt : 1;
 
     if (elements.multiplier) elements.multiplier.textContent = formatMultiplier(value);
+    const balance = NP.getState().balance;
     if (elements.bet) elements.bet.textContent = NP.formatStars(game.bet);
-    if (elements.betDown) elements.betDown.disabled = running || game.bet <= BET_STEPS[0];
-    if (elements.betUp) elements.betUp.disabled = running || game.bet >= BET_STEPS[BET_STEPS.length - 1];
+    if (elements.betDown) elements.betDown.disabled = running || game.bet <= MIN_BET;
+    if (elements.betUp) elements.betUp.disabled = running || game.bet >= balance;
+    if (elements.betHalf) elements.betHalf.disabled = running || game.bet <= MIN_BET;
+    if (elements.betDouble) elements.betDouble.disabled = running || game.bet >= balance;
+    if (elements.betMax) elements.betMax.disabled = running || game.bet >= balance || balance < MIN_BET;
 
     if (elements.action) {
       elements.action.disabled = false;
@@ -172,7 +183,7 @@
   function startRound() {
     if (game.phase === "running") return;
     if (NP.getState().balance < game.bet) {
-      NP.toast("Мало звёзд", "Пополните демо-баланс или выберите ставку меньше.", "error");
+      NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
       NP.openModal("modalTopup");
       return;
     }
@@ -297,14 +308,49 @@
     else startRound();
   }
 
+  function betOptions() {
+    const balance = NP.getState().balance;
+    const options = BET_STEPS.filter((value) => value <= balance);
+    if (balance >= MIN_BET && !options.includes(balance)) options.push(balance);
+    return options.sort((a, b) => a - b);
+  }
+
+  function setBet(value) {
+    if (game.phase === "running") return;
+    const balance = NP.getState().balance;
+    const next = Math.max(MIN_BET, Math.min(balance, Math.round(value)));
+    game.bet = Number.isFinite(next) ? next : MIN_BET;
+    updateUI();
+    NP.sound("click");
+  }
+
+  function halveBet() {
+    setBet(Math.floor(game.bet / 2));
+  }
+
+  function doubleBet() {
+    setBet(game.bet * 2);
+  }
+
+  function maxBet() {
+    if (game.phase === "running") return;
+    const balance = NP.getState().balance;
+    if (balance < MIN_BET) {
+      NP.toast("Мало звёзд", "Пополните баланс, чтобы продолжить.", "error");
+      NP.openModal("modalTopup");
+      return;
+    }
+    setBet(balance);
+  }
+
   function changeBet(direction) {
     if (game.phase === "running") return;
-    const currentIndex = BET_STEPS.indexOf(game.bet);
-    const nextIndex = Math.min(
-      BET_STEPS.length - 1,
-      Math.max(0, (currentIndex === -1 ? 0 : currentIndex) + direction)
-    );
-    game.bet = BET_STEPS[nextIndex];
+    const options = betOptions();
+    const next = direction > 0
+      ? options.find((value) => value > game.bet)
+      : [...options].reverse().find((value) => value < game.bet);
+    if (!next) return;
+    game.bet = next;
     updateUI();
     NP.sound("click");
   }
@@ -320,6 +366,9 @@
     elements.bet = document.getElementById("crashBet");
     elements.betDown = document.getElementById("crashBetDown");
     elements.betUp = document.getElementById("crashBetUp");
+    elements.betHalf = document.getElementById("crashBetHalf");
+    elements.betDouble = document.getElementById("crashBetDouble");
+    elements.betMax = document.getElementById("crashBetMax");
     elements.history = document.getElementById("crashHistory");
 
     drawChart(1, 0);
@@ -329,6 +378,9 @@
     elements.action?.addEventListener("click", handleAction);
     elements.betDown?.addEventListener("click", () => changeBet(-1));
     elements.betUp?.addEventListener("click", () => changeBet(1));
+    elements.betHalf?.addEventListener("click", halveBet);
+    elements.betDouble?.addEventListener("click", doubleBet);
+    elements.betMax?.addEventListener("click", maxBet);
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && game.phase === "running") {

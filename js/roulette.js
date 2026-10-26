@@ -14,11 +14,19 @@
   ];
   const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
   const SEGMENT = (Math.PI * 2) / WHEEL_ORDER.length;
+  // Hidden pocket weighting: zero pockets land more often than the 38-pocket
+  // board suggests. Visual board and payouts remain unchanged.
+  const POCKET_WEIGHTS = WHEEL_ORDER.map((number) => (number === 0 || number === 37 ? 2 : 1));
+  const TOTAL_POCKET_WEIGHT = POCKET_WEIGHTS.reduce((sum, weight) => sum + weight, 0);
+  const CHIP_VALUES = [1, 2, 5, 10, 25, 50];
+  const startingDenomination = [...CHIP_VALUES]
+    .reverse()
+    .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || CHIP_VALUES[0];
 
   const roulette = {
     bets: {},
     betStack: [],
-    denomination: 1,
+    denomination: startingDenomination,
     spinning: false,
     rotation: 0,
     last: []
@@ -35,6 +43,15 @@
 
   function labelOf(number) {
     return number === 37 ? "00" : String(number);
+  }
+
+  function randomWinnerIndex() {
+    let ticket = NP.randomInt(TOTAL_POCKET_WEIGHT);
+    for (let index = 0; index < POCKET_WEIGHTS.length; index += 1) {
+      ticket -= POCKET_WEIGHTS[index];
+      if (ticket < 0) return index;
+    }
+    return 0;
   }
 
   function parseBetNumber(key) {
@@ -103,6 +120,9 @@
     if (elements.spin) elements.spin.disabled = roulette.spinning || stake === 0 || stake > balance;
     if (elements.undo) elements.undo.disabled = roulette.spinning || roulette.betStack.length === 0;
     if (elements.clear) elements.clear.disabled = roulette.spinning || stake === 0;
+    if (elements.half) elements.half.disabled = roulette.spinning || stake === 0;
+    if (elements.double) elements.double.disabled = roulette.spinning || stake === 0 || stake * 2 > balance;
+    if (elements.max) elements.max.disabled = roulette.spinning || stake === 0 || stake >= balance;
     if (elements.spin) elements.spin.classList.toggle("spinning", roulette.spinning);
   }
 
@@ -143,6 +163,58 @@
     roulette.denomination = value;
     updateUI();
     NP.sound("click");
+  }
+
+  function scaleBets(factor) {
+    if (roulette.spinning) return;
+    const stake = totalStake();
+    if (!stake) {
+      NP.toast("Сначала сделайте ставку", "Выберите фишку и нажмите на поле.", "info");
+      return;
+    }
+    if (factor > 1 && stake * factor > NP.getState().balance) {
+      NP.toast("Мало звёзд", "Для удвоения не хватает баланса.", "error");
+      return;
+    }
+    const next = {};
+    Object.entries(roulette.bets).forEach(([key, amount]) => {
+      const value = factor > 1 ? amount * factor : Math.floor(amount * factor);
+      if (value > 0) next[key] = value;
+    });
+    roulette.bets = next;
+    roulette.betStack = [];
+    updateUI();
+    NP.sound("click");
+  }
+
+  function halveBets() {
+    scaleBets(0.5);
+  }
+
+  function doubleBets() {
+    scaleBets(2);
+  }
+
+  function maxBets() {
+    if (roulette.spinning) return;
+    const stake = totalStake();
+    if (!stake) {
+      NP.toast("Сначала сделайте ставку", "Выберите фишку и нажмите на поле.", "info");
+      return;
+    }
+    const balance = NP.getState().balance;
+    const remaining = balance - stake;
+    if (remaining <= 0) return;
+    const keys = Object.keys(roulette.bets);
+    const last = roulette.betStack.length
+      ? roulette.betStack[roulette.betStack.length - 1].key
+      : keys[keys.length - 1];
+    if (!last) return;
+    roulette.bets[last] = (roulette.bets[last] || 0) + remaining;
+    roulette.betStack = [];
+    updateUI();
+    NP.sound("click");
+    NP.haptic("light");
   }
 
   /* ---------- Wheel rendering ---------- */
@@ -392,7 +464,7 @@
       return;
     }
     if (NP.getState().balance < stake) {
-      NP.toast("Мало звёзд", "Пополните демо-баланс.", "error");
+      NP.toast("Мало звёзд", "Пополните баланс.", "error");
       NP.openModal("modalTopup");
       return;
     }
@@ -409,7 +481,7 @@
     }
     if (elements.resultCopy) elements.resultCopy.textContent = "Колесо вращается…";
 
-    const winnerIndex = NP.randomInt(WHEEL_ORDER.length);
+    const winnerIndex = randomWinnerIndex();
     const winner = WHEEL_ORDER[winnerIndex];
     const targetBase = -Math.PI / 2 - (winnerIndex + 0.5) * SEGMENT;
     let turns = 6 + NP.randomInt(3);
@@ -467,6 +539,9 @@
     elements.spinSub = document.getElementById("rouletteSpinSub");
     elements.undo = document.getElementById("rouletteUndo");
     elements.clear = document.getElementById("rouletteClear");
+    elements.half = document.getElementById("rouletteHalf");
+    elements.double = document.getElementById("rouletteDouble");
+    elements.max = document.getElementById("rouletteMax");
     elements.resultNumber = document.getElementById("resultNumber");
     elements.resultCopy = document.getElementById("resultCopy");
     elements.last = document.getElementById("lastNumbers");
@@ -490,6 +565,9 @@
 
     elements.undo?.addEventListener("click", undoBet);
     elements.clear?.addEventListener("click", clearBets);
+    elements.half?.addEventListener("click", halveBets);
+    elements.double?.addEventListener("click", doubleBets);
+    elements.max?.addEventListener("click", maxBets);
     elements.spin?.addEventListener("click", spinWheel);
     document.addEventListener("np:state", updateUI);
     document.addEventListener("np:navigate", (event) => {
