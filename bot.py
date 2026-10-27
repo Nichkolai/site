@@ -241,7 +241,7 @@ def parse_topup_payload(payload: str) -> int | None:
 def send_topup_invoice(chat_id: int, amount: int) -> None:
     amount = int(amount)
     invoice_payload = f"topup:{amount}:{secrets.token_hex(8)}"
-    api("sendInvoice", {
+    result = api("sendInvoice", {
         "chat_id": chat_id,
         "title": "Пополнение KAZ",
         "description": (
@@ -252,6 +252,8 @@ def send_topup_invoice(chat_id: int, amount: int) -> None:
         "currency": "XTR",
         "prices": [{"label": f"{amount} ★", "amount": amount}],
     })
+    message_id = result.get("message_id") if isinstance(result, dict) else None
+    log(f"[bot] topup invoice sent chat={chat_id} amount={amount} message_id={message_id}")
 
 
 def handle_topup_request(message: dict, chat_id: int, data: dict) -> None:
@@ -405,6 +407,10 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
 
     if not isinstance(data, dict):
         return
+    log(
+        f"[bot] web_app_data chat={chat_id} type={data.get('type')!r} "
+        f"amount={data.get('amount')!r} bytes={len(raw)}"
+    )
     if data.get("type") == "topup":
         handle_topup_request(message, chat_id, data)
         return
