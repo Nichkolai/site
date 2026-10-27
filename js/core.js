@@ -10,7 +10,7 @@
   const DAILY_BONUS = 10;
   const MIN_WITHDRAW = 500;
   const MIN_TOPUP = 1;
-  const MAX_TOPUP = 10000;
+  const MAX_TOPUP = 1000000;
   const DEFAULT_TOPUP = 500;
   const MAX_HISTORY = 100;
 
