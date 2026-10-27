@@ -17,7 +17,6 @@
   --gold: #ffd166;
   --red: #ff5d73;
   --blue: #6ab7ff;
-  --purple: #b49bff;
   --orange: #ff9f5a;
   --teal: #5ff0d0;
   --radius: 18px;
@@ -95,28 +94,6 @@ img, canvas { display: block; max-width: 100%; }
   outline: 2px solid var(--lime);
   outline-offset: 2px;
 }
-
-/* ---------- ambient ---------- */
-.ambient {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.ambient span {
-  position: absolute;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.16;
-}
-
-.ambient span:nth-child(1) { top: -160px; left: 50%; background: #86ff4d; transform: translateX(-70%); }
-.ambient span:nth-child(2) { top: 32%; left: -220px; background: #1c5dff; opacity: 0.12; }
-.ambient span:nth-child(3) { bottom: -180px; right: -140px; background: #ffb02e; opacity: 0.1; }
 
 /* ---------- app shell ---------- */
 .app {
@@ -373,36 +350,6 @@ img, canvas { display: block; max-width: 100%; }
 .hero-actions .btn-primary { flex: 1; }
 .hero-actions .btn { height: 42px; font-size: 12.5px; padding: 0 13px; }
 
-.hero-star {
-  position: absolute;
-  color: var(--gold);
-  pointer-events: none;
-  user-select: none;
-}
-
-.hero-star-a {
-  top: 54px;
-  right: 22px;
-  font-size: 38px;
-  opacity: 0.16;
-  transform: rotate(14deg);
-}
-
-.hero-star-b {
-  top: 96px;
-  right: 64px;
-  font-size: 17px;
-  opacity: 0.3;
-}
-
-.hero-star-c {
-  bottom: 66px;
-  right: 22px;
-  font-size: 11px;
-  opacity: 0.35;
-  color: var(--lime);
-}
-
 /* ---------- buttons ---------- */
 .btn {
   display: inline-flex;
@@ -479,7 +426,6 @@ img, canvas { display: block; max-width: 100%; }
 .stat-icon.green { color: var(--lime); background: rgba(200, 255, 94, 0.09); }
 .stat-icon.blue { color: var(--blue); background: rgba(106, 183, 255, 0.09); }
 .stat-icon.gold { color: var(--gold); background: rgba(255, 209, 102, 0.09); }
-.stat-icon.purple { color: var(--purple); background: rgba(180, 155, 255, 0.09); }
 
 .stat-card div { display: flex; flex-direction: column; min-width: 0; }
 .stat-card div span {
@@ -587,7 +533,6 @@ img, canvas { display: block; max-width: 100%; }
 .game-icon.green { color: var(--lime); background: rgba(200, 255, 94, 0.1); }
 .game-icon.red { color: #ff8494; background: rgba(255, 93, 115, 0.1); }
 .game-icon.blue { color: var(--blue); background: rgba(106, 183, 255, 0.1); }
-.game-icon.purple { color: var(--purple); background: rgba(180, 155, 255, 0.1); }
 .game-icon.orange { color: var(--orange); background: rgba(255, 159, 90, 0.1); }
 .game-icon.teal { color: var(--teal); background: rgba(95, 240, 208, 0.1); }
 
@@ -657,7 +602,7 @@ img, canvas { display: block; max-width: 100%; }
 .recent-icon.slots { color: var(--lime); background: rgba(200, 255, 94, 0.09); }
 .recent-icon.blackjack { color: var(--blue); background: rgba(106, 183, 255, 0.09); }
 .recent-icon.roulette { color: var(--red); background: rgba(255, 93, 115, 0.09); }
-.recent-icon.mines { color: var(--purple); background: rgba(180, 155, 255, 0.09); }
+.recent-icon.mines { color: var(--green); background: rgba(125, 255, 168, 0.09); }
 .recent-icon.crash { color: var(--orange); background: rgba(255, 159, 90, 0.09); }
 .recent-icon.upgrader { color: var(--teal); background: rgba(95, 240, 208, 0.09); }
 .recent-icon.withdraw { color: var(--gold); background: rgba(255, 210, 106, 0.1); }
@@ -688,20 +633,6 @@ img, canvas { display: block; max-width: 100%; }
   font-size: 11px;
   text-align: center;
 }
-
-/* ---------- footer ---------- */
-.app-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 26px 4px 8px;
-  color: var(--muted-2);
-  font-size: 9.5px;
-  line-height: 1.5;
-  text-align: center;
-}
-
-.app-footer span:last-child { opacity: 0.75; }
 
 /* ---------- game head ---------- */
 .game-head {
@@ -1291,7 +1222,6 @@ body {
 .recent-main strong { font-size: 13px; }
 .recent-main span { font-size: 11px; }
 .recent-delta { font-size: 13px; }
-.app-footer { font-size: 10.5px; }
 .kicker { font-size: 10px; }
 .game-head h1 { font-size: 29px; }
 .game-head p { font-size: 13px; }

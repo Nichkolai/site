@@ -732,9 +732,25 @@
       else element.removeAttribute("aria-current");
     });
 
+    const centerGameChip = () => {
+      const rail = document.getElementById("gameRail");
+      if (!rail) return;
+      const activeChip = rail.querySelector(".game-chip.active");
+      if (!activeChip) {
+        rail.scrollLeft = 0;
+        return;
+      }
+      const railRect = rail.getBoundingClientRect();
+      const chipRect = activeChip.getBoundingClientRect();
+      const offset = chipRect.left - railRect.left - (rail.clientWidth - chipRect.width) / 2;
+      const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      rail.scrollLeft = Math.max(0, Math.min(rail.scrollLeft + offset, max));
+    };
     const back = document.getElementById("backBtn");
     if (back) back.hidden = !GAME_VIEWS.has(target);
     document.body.classList.toggle("is-game", GAME_VIEWS.has(target));
+    centerGameChip();
+    window.requestAnimationFrame(centerGameChip);
 
     document.title = target === "lobby" ? "KAZ - казино" : `${VIEW_TITLES[target]} - KAZ`;
 

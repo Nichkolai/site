@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#100919">
+  <meta name="theme-color" content="#07110b">
   <meta name="color-scheme" content="dark">
   <meta name="description" content="KAZ — казино в Telegram. Слоты, блэкджек, рулетка, мины, краш и апгрейд.">
   <title>KAZ — казино</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23080b0f'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23d9b874'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=17">
-  <link rel="stylesheet" href="games.css?v=17">
-  <link rel="stylesheet" href="theme.css?v=17">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2307110b'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23c8f169'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="games.css?v=20">
+  <link rel="stylesheet" href="theme.css?v=20">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -38,8 +38,6 @@
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   </svg>
 
-  <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
-
   <div class="app">
     <header class="appbar">
       <button class="icon-btn back-btn" id="backBtn" type="button" data-nav="lobby" aria-label="Назад" hidden>
@@ -65,17 +63,17 @@
     </header>
 
     <nav class="game-rail" id="gameRail" aria-label="Быстрый выбор игры">
-      <a class="game-chip" href="#slots" data-nav="slots">
-        <svg class="icon"><use href="#i-slots"></use></svg><span>Слоты</span>
-      </a>
-      <a class="game-chip" href="#upgrader" data-nav="upgrader">
-        <svg class="icon"><use href="#i-up"></use></svg><span>Апгрейд</span>
+      <a class="game-chip" href="#mines" data-nav="mines">
+        <svg class="icon"><use href="#i-bomb"></use></svg><span>Мины</span>
       </a>
       <a class="game-chip" href="#crash" data-nav="crash">
         <svg class="icon"><use href="#i-rocket"></use></svg><span>Краш</span>
       </a>
-      <a class="game-chip" href="#mines" data-nav="mines">
-        <svg class="icon"><use href="#i-bomb"></use></svg><span>Мины</span>
+      <a class="game-chip" href="#upgrader" data-nav="upgrader">
+        <svg class="icon"><use href="#i-up"></use></svg><span>Апгрейд</span>
+      </a>
+      <a class="game-chip" href="#slots" data-nav="slots">
+        <svg class="icon"><use href="#i-slots"></use></svg><span>Слоты</span>
       </a>
       <a class="game-chip" href="#blackjack" data-nav="blackjack">
         <svg class="icon"><use href="#i-cards"></use></svg><span>Блэкджек</span>
@@ -106,9 +104,6 @@
             <span class="withdraw-entry-copy"><strong>Вывод звёзд</strong><small>Заявка администратору</small></span>
             <svg class="icon withdraw-entry-arrow"><use href="#i-arrow"></use></svg>
           </button>
-          <span class="hero-star hero-star-a" aria-hidden="true">★</span>
-          <span class="hero-star hero-star-b" aria-hidden="true">✦</span>
-          <span class="hero-star hero-star-c" aria-hidden="true">★</span>
         </div>
 
         <article class="panel topup-strip">
@@ -130,7 +125,7 @@
 
         <div class="game-grid">
           <a class="game-card" href="#mines" data-nav="mines">
-            <span class="game-icon purple"><svg class="icon"><use href="#i-bomb"></use></svg></span>
+            <span class="game-icon mines"><svg class="icon"><use href="#i-bomb"></use></svg></span>
             <span class="game-copy"><strong>Мины</strong><small>5 мин · 25 клеток</small></span>
           </a>
           <a class="game-card" href="#crash" data-nav="crash">
@@ -167,10 +162,6 @@
         </div>
         <div class="recent-list" id="recentGames"></div>
 
-        <footer class="app-footer">
-          <span>KAZ · 6 игр</span>
-          <span>Ежедневный бонус · 10 ★</span>
-        </footer>
       </section>
 
       <!-- СЛОТЫ -->
@@ -532,10 +523,6 @@
           </button>
         </div>
 
-        <footer class="app-footer">
-          <span>KAZ · 6 игр</span>
-          <span>Ежедневный бонус · 10 ★</span>
-        </footer>
       </section>
     </main>
 
@@ -647,12 +634,12 @@
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
   <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
-  <script src="js/core.js?v=17"></script>
-  <script src="js/slots.js?v=17"></script>
-  <script src="js/blackjack.js?v=17"></script>
-  <script src="js/roulette.js?v=17"></script>
-  <script src="js/mines.js?v=17"></script>
-  <script src="js/crash.js?v=17"></script>
-  <script src="js/upgrader.js?v=17"></script>
+  <script src="js/core.js?v=20"></script>
+  <script src="js/slots.js?v=20"></script>
+  <script src="js/blackjack.js?v=20"></script>
+  <script src="js/roulette.js?v=20"></script>
+  <script src="js/mines.js?v=20"></script>
+  <script src="js/crash.js?v=20"></script>
+  <script src="js/upgrader.js?v=20"></script>
 </body>
 </html>
