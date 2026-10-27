@@ -8,8 +8,8 @@
   <meta name="description" content="KAZ — казино в Telegram. Слоты, блэкджек, рулетка, мины, краш и апгрейд.">
   <title>KAZ — казино</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23080b0f'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23c8ff5e'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=7">
-  <link rel="stylesheet" href="games.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="games.css?v=9">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -89,20 +89,16 @@
           <span class="hero-star hero-star-c" aria-hidden="true">★</span>
         </div>
 
-        <div class="stats-row">
-          <article class="stat-card">
-            <span class="stat-icon green"><svg class="icon"><use href="#i-star"></use></svg></span>
-            <div><span>Баланс</span><strong data-bind="balance">50</strong></div>
-          </article>
-          <article class="stat-card">
-            <span class="stat-icon blue"><svg class="icon"><use href="#i-chart"></use></svg></span>
-            <div><span>Раунды</span><strong data-bind="games">0</strong></div>
-          </article>
-          <article class="stat-card">
-            <span class="stat-icon gold"><svg class="icon"><use href="#i-trophy"></use></svg></span>
-            <div><span>Рекорд</span><strong data-bind="bestWin">0</strong></div>
-          </article>
-        </div>
+        <article class="panel topup-strip">
+          <div class="topup-strip-balance">
+            <span>Баланс</span>
+            <strong><span data-bind="balance">50</span> <small>★</small></strong>
+          </div>
+          <button class="btn btn-primary" type="button" data-action="topup">
+            <svg class="icon"><use href="#i-plus"></use></svg>
+            Пополнить
+          </button>
+        </article>
 
         <div class="section-head">
           <h2>Игры</h2>
@@ -473,25 +469,6 @@
           </div>
         </div>
 
-        <div class="stats-row history-stats">
-          <article class="stat-card">
-            <span class="stat-icon green"><svg class="icon"><use href="#i-star"></use></svg></span>
-            <div><span>Баланс</span><strong data-bind="balance">50</strong></div>
-          </article>
-          <article class="stat-card">
-            <span class="stat-icon blue"><svg class="icon"><use href="#i-slots"></use></svg></span>
-            <div><span>Раунды</span><strong data-bind="games">0</strong></div>
-          </article>
-          <article class="stat-card">
-            <span class="stat-icon purple"><svg class="icon"><use href="#i-chart"></use></svg></span>
-            <div><span>Оборот</span><strong data-bind="wagered">0</strong></div>
-          </article>
-          <article class="stat-card">
-            <span class="stat-icon gold"><svg class="icon"><use href="#i-trophy"></use></svg></span>
-            <div><span>Рекорд</span><strong data-bind="bestWin">0</strong></div>
-          </article>
-        </div>
-
         <article class="panel history-panel">
           <div class="panel-head">
             <h2>Все раунды</h2>
@@ -561,19 +538,26 @@
     <div class="modal-card">
       <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
       <span class="modal-kicker">Пополнение</span>
-      <h2 id="topupModalTitle">Добавить звёзды</h2>
-      <p>Звёзды начисляются мгновенно.</p>
-      <div class="topup-grid">
-        <button type="button" data-topup="50"><span>+50</span><small>★</small></button>
-        <button type="button" data-topup="150" class="featured"><span>+150</span><small>★</small><b>Выгодно</b></button>
-        <button type="button" data-topup="500"><span>+500</span><small>★</small></button>
+      <h2 id="topupModalTitle">Пополнить баланс</h2>
+      <p>Введите сумму. Оплата пройдёт в чате с ботом через Telegram Stars.</p>
+      <label class="form-field" for="topupAmount">
+        <span>Сумма пополнения</span>
+        <input id="topupAmount" type="number" min="1" max="10000" step="1" inputmode="numeric" value="500" autocomplete="off">
+      </label>
+      <div class="topup-summary">
+        <span>К оплате</span>
+        <strong id="topupPrice">500</strong>
+        <small>Telegram Stars</small>
       </div>
+      <span class="modal-footnote topup-rate">1 ★ = 1 Telegram Star · минимум 1 ★</span>
+      <button class="btn btn-primary modal-main-btn" id="topupSubmitBtn" type="button">Пополнить за Stars</button>
+      <span class="modal-footnote" id="topupFootnote">После оплаты вернитесь в KAZ — баланс обновится</span>
       <div class="modal-divider"></div>
       <button class="btn btn-ghost modal-main-btn" id="openWithdrawBtn" type="button" data-action="withdraw">
         <svg class="icon"><use href="#i-arrow"></use></svg>
         Вывод звёзд
       </button>
-      <span class="modal-footnote">Заявка уйдёт администратору</span>
+      <span class="modal-footnote">Заявка от 500 ★ · решение принимает администратор</span>
     </div>
   </div>
 
@@ -584,30 +568,26 @@
       <span class="modal-star"><svg class="icon"><use href="#i-arrow"></use></svg></span>
       <span class="modal-kicker">Заявка</span>
       <h2 id="withdrawModalTitle">Вывод звёзд</h2>
-      <p>Укажите сумму — отправителя определим автоматически.</p>
+      <p>Укажите сумму — контакт для связи возьмём из ShuzaGram.</p>
       <div class="withdraw-summary">
         <span>Доступно</span>
         <strong data-bind="balance">50</strong>
         <small>★</small>
       </div>
-      <div class="withdraw-user" id="withdrawUser" hidden>
-        <span>Заявка от</span>
-        <strong id="withdrawUserLabel">—</strong>
+      <div class="withdraw-user" id="withdrawUser">
+        <span>Контакт из ShuzaGram</span>
+        <strong id="withdrawUserLabel">Определится автоматически</strong>
       </div>
       <label class="form-field" for="withdrawAmount">
         <span>Сумма вывода</span>
-        <input id="withdrawAmount" type="number" min="50" step="1" inputmode="numeric" placeholder="50" autocomplete="off">
+        <input id="withdrawAmount" type="number" min="500" step="1" inputmode="numeric" placeholder="500" autocomplete="off">
       </label>
       <div class="bet-tools withdraw-quick" role="group" aria-label="Быстрый выбор суммы">
         <button type="button" data-withdraw-quick="half">½</button>
         <button type="button" data-withdraw-quick="max">MAX</button>
       </div>
-      <label class="form-field" for="withdrawContact" id="withdrawContactField" hidden>
-        <span>Контакт для связи</span>
-        <input id="withdrawContact" type="text" maxlength="80" placeholder="@username" autocomplete="off">
-      </label>
       <button class="btn btn-primary modal-main-btn" id="withdrawSubmitBtn" type="button">Отправить заявку</button>
-      <span class="modal-footnote" id="withdrawFootnote">Минимум 50 ★ · решение принимает администратор</span>
+      <span class="modal-footnote" id="withdrawFootnote">Минимум 500 ★ · решение принимает администратор</span>
       <div class="withdraw-result" id="withdrawResult" hidden></div>
     </div>
   </div>
@@ -629,12 +609,12 @@
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
   <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
-  <script src="js/core.js?v=7"></script>
-  <script src="js/slots.js?v=7"></script>
-  <script src="js/blackjack.js?v=7"></script>
-  <script src="js/roulette.js?v=7"></script>
-  <script src="js/mines.js?v=7"></script>
-  <script src="js/crash.js?v=7"></script>
-  <script src="js/upgrader.js?v=7"></script>
+  <script src="js/core.js?v=9"></script>
+  <script src="js/slots.js?v=9"></script>
+  <script src="js/blackjack.js?v=9"></script>
+  <script src="js/roulette.js?v=9"></script>
+  <script src="js/mines.js?v=9"></script>
+  <script src="js/crash.js?v=9"></script>
+  <script src="js/upgrader.js?v=9"></script>
 </body>
 </html>

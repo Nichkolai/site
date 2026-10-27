@@ -23,6 +23,7 @@ import html
 import json
 import mimetypes
 import os
+import secrets
 import signal
 import sys
 import threading
@@ -32,6 +33,8 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import payments
 
 # Windows consoles often default to cp1252/cp866; the bot prints Russian text.
 for _stream in (sys.stdout, sys.stderr):
@@ -92,6 +95,9 @@ ADMIN_IDS = [
     for part in (os.environ.get("ADMIN_IDS") or ADMIN_ID).replace(";", ",").split(",")
     if part.strip()
 ]
+MIN_TOPUP = payments.MIN_TOPUP
+MAX_TOPUP = payments.MAX_TOPUP
+DEFAULT_TOPUP = payments.DEFAULT_TOPUP
 
 
 class BotAPIError(RuntimeError):
@@ -194,13 +200,15 @@ def send_message(chat_id: int, text: str, keyboard: dict | None = None) -> None:
 WELCOME = (
     "<b>KAZ</b> — казино на виртуальные звёзды.\n\n"
     "На старте — <b>50 ★</b>, ежедневный бонус — <b>10 ★</b>.\n"
-    "Слоты, блэкджек, рулетка, мины, краш и апгрейд.\n\n"
+    "Слоты, блэкджек, рулетка, мины, краш и апгрейд.\n"
+    "Пополнение — за Telegram Stars, <b>1 ★ = 1 Star</b>.\n\n"
 )
 
 HELP = (
     "<b>Команды</b>\n"
     "/start — открыть казино\n"
     "/play — кнопка запуска Mini App\n"
+    "/buy 500 — счёт на пополнение (по умолчанию 500 ★)\n"
     "/stars — как работают звёзды\n"
     "/id — ваш Telegram ID (для связи с администратором)\n"
     "/help — эта справка\n\n"
@@ -208,12 +216,178 @@ HELP = (
 )
 
 STARS = (
-    "<b>Виртуальные звёзды</b>\n\n"
-    "★ — внутренняя валюта KAZ. Это не Telegram Stars и не платёжное средство.\n"
-    "Вывод оформляется заявкой: укажите сумму в приложении — бот сам "
-    "определит ваш профиль, а заявка уйдёт администратору.\n"
-    "Баланс и история сохраняются в localStorage вашего браузера."
+    "<b>Звёзды KAZ</b>\n\n"
+    "★ — внутренняя валюта приложения. Пополнение идёт за Telegram Stars:\n"
+    "<b>1 ★ = 1 Telegram Star</b>, минимум — <b>1 ★</b>.\n"
+    "Вывод оформляется заявкой от <b>500 ★</b>: бот сам определяет ваш "
+    "профиль, а заявка уходит администратору на ручную проверку.\n"
+    "После оплаты откройте приложение — баланс синхронизируется автоматически."
 )
+
+
+def parse_topup_payload(payload: str) -> int | None:
+    parts = str(payload or "").split(":")
+    if len(parts) < 2 or parts[0] != "topup":
+        return None
+    try:
+        amount = int(parts[1])
+    except (TypeError, ValueError):
+        return None
+    if amount < MIN_TOPUP or amount > MAX_TOPUP:
+        return None
+    return amount
+
+
+def send_topup_invoice(chat_id: int, amount: int) -> None:
+    amount = int(amount)
+    invoice_payload = f"topup:{amount}:{secrets.token_hex(8)}"
+    api("sendInvoice", {
+        "chat_id": chat_id,
+        "title": "Пополнение KAZ",
+        "description": (
+            f"Баланс KAZ на {amount} ★. "
+            "1 Telegram Star = 1 ★. После оплаты вернитесь в приложение."
+        ),
+        "payload": invoice_payload,
+        "currency": "XTR",
+        "prices": [{"label": f"{amount} ★", "amount": amount}],
+    })
+
+
+def handle_topup_request(message: dict, chat_id: int, data: dict) -> None:
+    try:
+        amount = int(data.get("amount"))
+    except (TypeError, ValueError):
+        amount = 0
+    if amount < MIN_TOPUP or amount > MAX_TOPUP:
+        send_message(
+            chat_id,
+            f"Пополнение от <b>{MIN_TOPUP}</b> до <b>{MAX_TOPUP} ★</b>. "
+            "Проверьте сумму и попробуйте ещё раз.",
+        )
+        return
+    try:
+        send_topup_invoice(chat_id, amount)
+    except BotAPIError as exc:
+        log(f"[bot] topup invoice: {exc.description}")
+        send_message(
+            chat_id,
+            "Не удалось создать счёт на пополнение. Попробуйте позже или напишите администратору.",
+        )
+
+
+def handle_buy_command(chat_id: int, text: str) -> None:
+    parts = text.split()
+    if len(parts) > 1:
+        try:
+            amount = int(parts[1])
+        except (TypeError, ValueError):
+            amount = 0
+    else:
+        amount = DEFAULT_TOPUP
+    if amount < MIN_TOPUP or amount > MAX_TOPUP:
+        send_message(
+            chat_id,
+            f"Укажите сумму от <b>{MIN_TOPUP}</b> до <b>{MAX_TOPUP} ★</b>. "
+            f"Например: <code>/buy {DEFAULT_TOPUP}</code>",
+        )
+        return
+    try:
+        send_topup_invoice(chat_id, amount)
+    except BotAPIError as exc:
+        log(f"[bot] /buy invoice: {exc.description}")
+        send_message(chat_id, "Не удалось создать счёт. Попробуйте позже.")
+
+
+def handle_pre_checkout_query(query: dict) -> None:
+    query_id = query.get("id")
+    if not query_id:
+        return
+    amount = parse_topup_payload(str(query.get("invoice_payload") or ""))
+    try:
+        total = int(query.get("total_amount", 0))
+    except (TypeError, ValueError):
+        total = 0
+    valid = (
+        amount is not None
+        and str(query.get("currency") or "") == "XTR"
+        and total == amount
+    )
+    payload = {
+        "pre_checkout_query_id": query_id,
+        "ok": valid,
+    }
+    if not valid:
+        payload["error_message"] = "Счёт устарел или сумма не совпадает. Создайте новый счёт."
+    try:
+        api("answerPreCheckoutQuery", payload)
+    except BotAPIError as exc:
+        log(f"[bot] pre_checkout: {exc.description}")
+
+
+def handle_successful_payment(message: dict, chat_id: int) -> None:
+    payment = message.get("successful_payment") or {}
+    user = message.get("from") or {}
+    try:
+        user_id = int(user.get("id"))
+    except (TypeError, ValueError):
+        user_id = 0
+    charge_id = str(payment.get("telegram_payment_charge_id") or "")
+    payload = str(payment.get("invoice_payload") or "")
+    amount = parse_topup_payload(payload)
+    try:
+        total = int(payment.get("total_amount", 0))
+    except (TypeError, ValueError):
+        total = 0
+    currency = str(payment.get("currency") or "")
+
+    if not user_id or not charge_id or amount is None or currency != "XTR" or total != amount:
+        log(
+            "[bot] payment: ignored malformed successful_payment "
+            f"user={user_id} amount={amount} total={total} currency={currency}"
+        )
+        return
+
+    stored = payments.save_purchase(
+        user_id=user_id,
+        amount=amount,
+        currency=currency,
+        charge_id=charge_id,
+        payload=payload,
+    )
+    if not stored:
+        log(f"[bot] payment: duplicate charge {charge_id}")
+        return
+
+    username = user.get("username")
+    full_name = " ".join(
+        part for part in (user.get("first_name"), user.get("last_name")) if part
+    ).strip()
+    player = f"@{username}" if username else full_name or "без имени"
+
+    send_message(
+        chat_id,
+        f"✅ Оплата получена: <b>+{amount} ★</b>.\n"
+        "Откройте KAZ — баланс обновится автоматически.",
+        webapp_keyboard() if can_use_webapp() else None,
+    )
+
+    for admin_id in ADMIN_IDS:
+        admin_chat = int(admin_id) if admin_id.lstrip("-").isdigit() else admin_id
+        try:
+            api("sendMessage", {
+                "chat_id": admin_chat,
+                "text": (
+                    "<b>⭐ Пополнение</b>\n\n"
+                    f"Игрок: {html.escape(player)} (ID <code>{user_id}</code>)\n"
+                    f"Сумма: <b>{amount} ★</b> · {total} XTR\n"
+                    f"Charge: <code>{html.escape(charge_id[:80])}</code>"
+                ),
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            })
+        except BotAPIError as exc:
+            log(f"[bot] payment: админ {admin_id}: {exc.description}")
 
 
 def handle_web_app_data(message: dict, chat_id: int) -> None:
@@ -229,28 +403,32 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
         send_message(chat_id, "Не удалось прочитать заявку. Откройте приложение и попробуйте ещё раз.")
         return
 
-    if not isinstance(data, dict) or data.get("type") != "withdraw":
+    if not isinstance(data, dict):
+        return
+    if data.get("type") == "topup":
+        handle_topup_request(message, chat_id, data)
+        return
+    if data.get("type") != "withdraw":
         return
 
     try:
         amount = int(data.get("amount"))
     except (TypeError, ValueError):
         amount = 0
-    contact = str(data.get("contact") or "").strip()[:80]
     request_id = str(data.get("id") or "—").strip()[:60]
     if amount <= 0:
         send_message(chat_id, "Заявка не создана: проверьте сумму.")
         return
 
+    # Contact details are taken only from the ShuzaGram profile, never from
+    # client-supplied data.
     user = message.get("from") or {}
     user_id = user.get("id", "—")
     username = user.get("username")
     full_name = " ".join(
         part for part in (user.get("first_name"), user.get("last_name")) if part
     ).strip()
-    player = f"@{username}" if username else full_name or "без имени"
-    if not contact:
-        contact = player
+    contact = f"@{username}" if username else full_name or "без имени"
 
     if not ADMIN_IDS:
         log("[bot] withdraw: ADMIN_ID/ADMIN_IDS не заданы — заявка не отправлена администраторам")
@@ -265,7 +443,7 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
         "<b>💸 Заявка на вывод</b>\n\n"
         f"Сумма: <b>{amount} ★</b>\n"
         f"Контакт: {html.escape(contact)}\n"
-        f"Игрок: {html.escape(player)} (ID <code>{html.escape(str(user_id))}</code>)\n"
+        f"ShuzaGram ID: <code>{html.escape(str(user_id))}</code>\n"
         f"Заявка: <code>{html.escape(request_id)}</code>\n"
         f"Время: {time.strftime('%d.%m.%Y %H:%M')}"
     )
@@ -415,6 +593,11 @@ def handle_callback_query(callback: dict) -> None:
 
 
 def handle_update(update: dict) -> None:
+    pre_checkout = update.get("pre_checkout_query")
+    if pre_checkout:
+        handle_pre_checkout_query(pre_checkout)
+        return
+
     callback = update.get("callback_query")
     if callback:
         handle_callback_query(callback)
@@ -429,6 +612,10 @@ def handle_update(update: dict) -> None:
     if not chat_id:
         return
 
+    if message.get("successful_payment"):
+        handle_successful_payment(message, chat_id)
+        return
+
     if message.get("web_app_data"):
         handle_web_app_data(message, chat_id)
         return
@@ -441,6 +628,8 @@ def handle_update(update: dict) -> None:
     chat_type = chat.get("type", "private")
     if command in ("/start", "/play"):
         send_message(chat_id, WELCOME, open_keyboard(chat_type))
+    elif command == "/buy":
+        handle_buy_command(chat_id, text)
     elif command == "/stars":
         send_message(chat_id, STARS)
     elif command == "/id":
@@ -475,6 +664,7 @@ def configure_bot() -> str:
             "commands": [
                 {"command": "start", "description": "Открыть KAZ"},
                 {"command": "play", "description": "Запустить Mini App"},
+                {"command": "buy", "description": "Пополнить звёзды"},
                 {"command": "stars", "description": "О виртуальных звёздах"},
                 {"command": "id", "description": "Мой Telegram ID"},
                 {"command": "help", "description": "Справка"},
@@ -515,7 +705,7 @@ def poll_updates() -> None:
         try:
             updates = api(
                 "getUpdates",
-                {"offset": offset, "timeout": 25, "allowed_updates": ["message", "callback_query"]},
+                {"offset": offset, "timeout": 25, "allowed_updates": ["message", "callback_query", "pre_checkout_query"]},
                 timeout=40.0,
             )
         except BotAPIError as exc:

@@ -81,6 +81,10 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             bot.handle_update(update)
+        except bot.payments.PaymentStorageError as exc:
+            print(f"[webhook] payment storage error: {exc}", flush=True)
+            self._send_json(500, {"ok": False, "error": "payment_storage"})
+            return
         except bot.BotAPIError as exc:
             print(f"[webhook] telegram api error: {exc.description}", flush=True)
         except Exception as exc:  # keep Telegram from retrying forever

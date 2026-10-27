@@ -8,7 +8,10 @@
   const START_BALANCE = 50;
   const DEFAULT_BET = 50;
   const DAILY_BONUS = 10;
-  const MIN_WITHDRAW = 50;
+  const MIN_WITHDRAW = 500;
+  const MIN_TOPUP = 1;
+  const MAX_TOPUP = 10000;
+  const DEFAULT_TOPUP = 500;
   const MAX_HISTORY = 100;
 
   const GAME_VIEWS = new Set(["slots", "blackjack", "roulette", "mines", "crash", "upgrader"]);
@@ -50,6 +53,7 @@
       biggestWin: 0,
       history: [],
       withdrawals: [],
+      purchases: [],
       lastDaily: null,
       sound: true
     };
@@ -96,6 +100,17 @@
             }))
         : [];
 
+      const purchases = Array.isArray(saved.purchases)
+        ? saved.purchases
+            .filter((entry) => entry && String(entry.chargeId || "").trim() && Number(entry.amount) > 0)
+            .slice(0, 100)
+            .map((entry) => ({
+              chargeId: String(entry.chargeId).slice(0, 100),
+              amount: Math.max(0, Math.round(Number(entry.amount))),
+              at: Number(entry.at) || Date.now()
+            }))
+        : [];
+
       return {
         balance: Math.max(0, Math.round(safeNumber(saved.balance, START_BALANCE))),
         games: Math.max(0, Math.round(safeNumber(saved.games))),
@@ -103,6 +118,7 @@
         biggestWin: Math.max(0, Math.round(safeNumber(saved.biggestWin))),
         history,
         withdrawals,
+        purchases,
         lastDaily: typeof saved.lastDaily === "string" ? saved.lastDaily : null,
         sound: saved.sound !== false
       };
@@ -466,6 +482,7 @@
       /* BackButton is optional. */
     }
     syncTelegramBack();
+    syncPurchases();
   }
 
   function prepareTelegram() {
@@ -743,16 +760,122 @@
     document.dispatchEvent(new CustomEvent("np:state"));
   }
 
-  function topUp(amount) {
-    const value = Math.max(0, Math.round(safeNumber(amount)));
-    if (!value) return;
-    adjustBalance(value, { animate: true });
-    closeModal("modalTopup");
-    sound("cash");
-    haptic("success");
-    confetti(28);
-    toast("Баланс пополнен", `+${formatStars(value)} звёзд.`);
-    document.dispatchEvent(new CustomEvent("np:state"));
+  function openTopup() {
+    const input = document.getElementById("topupAmount");
+    if (input) input.value = String(DEFAULT_TOPUP);
+    updateTopupUI();
+    openModal("modalTopup");
+  }
+
+  function updateTopupUI() {
+    const input = document.getElementById("topupAmount");
+    const price = document.getElementById("topupPrice");
+    const submit = document.getElementById("topupSubmitBtn");
+    const footnote = document.getElementById("topupFootnote");
+    const amount = Math.round(safeNumber(input && input.value));
+    const valid = amount >= MIN_TOPUP && amount <= MAX_TOPUP;
+    if (price) price.textContent = formatStars(valid ? amount : 0);
+    if (submit) submit.disabled = !valid;
+    if (footnote) {
+      footnote.textContent = valid
+        ? "После оплаты вернитесь в KAZ — баланс обновится"
+        : `Введите сумму от ${MIN_TOPUP} до ${formatStars(MAX_TOPUP)} ★`;
+    }
+  }
+
+  function submitTopup() {
+    const input = document.getElementById("topupAmount");
+    const amount = Math.round(safeNumber(input && input.value));
+    if (amount < MIN_TOPUP || amount > MAX_TOPUP) {
+      toast("Проверьте сумму", `Введите от ${MIN_TOPUP} до ${formatStars(MAX_TOPUP)} ★.`, "error");
+      return;
+    }
+    if (!telegram || typeof telegram.sendData !== "function") {
+      toast("Откройте через Telegram", "Пополнение доступно в Mini App по кнопке бота.", "error");
+      return;
+    }
+
+    const button = document.getElementById("topupSubmitBtn");
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Создаём счёт…";
+    }
+    try {
+      telegram.sendData(JSON.stringify({
+        type: "topup",
+        amount,
+        at: Date.now()
+      }));
+      toast("Счёт отправлен", "Оплатите его в чате с ботом и вернитесь в KAZ.", "info");
+      window.setTimeout(() => {
+        if (button) {
+          button.textContent = "Пополнить за Stars";
+          updateTopupUI();
+        }
+      }, 4000);
+    } catch (error) {
+      if (button) {
+        button.textContent = "Пополнить за Stars";
+        updateTopupUI();
+      }
+      toast("Не удалось открыть оплату", "Попробуйте еще раз или напишите администратору.", "error");
+    }
+  }
+
+  let purchaseSyncPromise = null;
+  let lastPurchaseSync = 0;
+
+  async function syncPurchases() {
+    if (!telegram || !telegram.initData) return;
+    if (purchaseSyncPromise) return purchaseSyncPromise;
+    if (Date.now() - lastPurchaseSync < 3000) return;
+    lastPurchaseSync = Date.now();
+
+    purchaseSyncPromise = (async () => {
+      try {
+        const response = await fetch("/api/purchases", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          credentials: "same-origin",
+          body: JSON.stringify({ initData: telegram.initData })
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!payload || !Array.isArray(payload.purchases)) return;
+
+        const known = new Set(state.purchases.map((item) => item.chargeId));
+        let credited = 0;
+        payload.purchases.forEach((purchase) => {
+          const chargeId = String(purchase.charge_id || "").slice(0, 100);
+          const amount = Math.max(0, Math.round(safeNumber(purchase.amount)));
+          if (!chargeId || !amount || known.has(chargeId)) return;
+          known.add(chargeId);
+          state.purchases.unshift({
+            chargeId,
+            amount,
+            at: Number(purchase.created_at) * 1000 || Date.now()
+          });
+          credited += amount;
+        });
+
+        if (!credited) return;
+        state.purchases = state.purchases.slice(0, 100);
+        state.balance = Math.max(0, state.balance + credited);
+        saveState();
+        renderBalance(true);
+        sound("cash");
+        haptic("success");
+        toast("Баланс пополнен", `+${formatStars(credited)} ★ зачислено.`);
+        document.dispatchEvent(new CustomEvent("np:state"));
+      } catch (error) {
+        /* Payment sync is best-effort; the next app open will retry. */
+      } finally {
+        purchaseSyncPromise = null;
+      }
+    })();
+
+    return purchaseSyncPromise;
   }
 
   function telegramUser() {
@@ -773,37 +896,19 @@
     return `W-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   }
 
-  function withdrawalText(request) {
-    const date = new Date(request.at).toLocaleString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-    return [
-      "Заявка на вывод KAZ",
-      `Сумма: ${formatStars(request.amount)} ★`,
-      `Контакт: ${request.contact}`,
-      `Заявка: ${request.id}`,
-      `Дата: ${date}`
-    ].join("\n");
-  }
-
   function updateWithdrawUI() {
     const input = document.getElementById("withdrawAmount");
-    const contactInput = document.getElementById("withdrawContact");
     const submit = document.getElementById("withdrawSubmitBtn");
     const footnote = document.getElementById("withdrawFootnote");
     const amount = Math.round(safeNumber(input && input.value));
     const identity = telegramIdentity(telegramUser());
-    const contact = identity || (contactInput && contactInput.value || "").trim();
+    const canSend = Boolean(telegram && typeof telegram.sendData === "function");
     const enough = state.balance >= MIN_WITHDRAW;
     const valid = !withdrawLocked
+      && canSend
       && enough
       && amount >= MIN_WITHDRAW
-      && amount <= state.balance
-      && contact.length >= 2;
+      && amount <= state.balance;
 
     if (input) input.max = String(Math.max(0, state.balance));
     if (submit) {
@@ -812,12 +917,13 @@
     }
     if (footnote) {
       if (withdrawLocked) footnote.textContent = "Заявка создана · звёзды зарезервированы";
+      else if (!canSend) footnote.textContent = "Откройте приложение через ShuzaGram";
       else if (!enough) footnote.textContent = `Минимум ${MIN_WITHDRAW} ★ · недостаточно звёзд`;
       else if (!amount) footnote.textContent = `Минимум ${MIN_WITHDRAW} ★ · решение принимает администратор`;
       else if (amount < MIN_WITHDRAW) footnote.textContent = `Минимум ${MIN_WITHDRAW} ★`;
       else if (amount > state.balance) footnote.textContent = "Сумма больше баланса";
-      else if (contact.length < 2) footnote.textContent = "Укажите контакт для связи";
-      else footnote.textContent = `Заявка на ${formatStars(amount)} ★ · решение принимает администратор`;
+      else if (!identity) footnote.textContent = "Контакт возьмём из профиля ShuzaGram";
+      else footnote.textContent = `Контакт: ${identity} · решение принимает администратор`;
     }
   }
 
@@ -825,9 +931,6 @@
     withdrawLocked = false;
     const result = document.getElementById("withdrawResult");
     const amountInput = document.getElementById("withdrawAmount");
-    const contactInput = document.getElementById("withdrawContact");
-    const contactField = document.getElementById("withdrawContactField");
-    const userBox = document.getElementById("withdrawUser");
     const userLabel = document.getElementById("withdrawUserLabel");
     const user = telegramUser();
     const identity = telegramIdentity(user);
@@ -836,21 +939,14 @@
       result.hidden = true;
       result.replaceChildren();
     }
-    if (identity) {
-      if (contactInput) contactInput.value = identity;
-      if (contactField) contactField.hidden = true;
-      if (userBox) userBox.hidden = false;
-      if (userLabel) {
-        userLabel.textContent = user && user.id ? `${identity} · ID ${user.id}` : identity;
-      }
-    } else {
-      if (contactField) contactField.hidden = false;
-      if (userBox) userBox.hidden = true;
-      if (contactInput && !contactInput.value.trim()) contactInput.value = "";
+    if (userLabel) {
+      userLabel.textContent = identity
+        ? (user && user.id ? `${identity} · ID ${user.id}` : identity)
+        : "Определится автоматически";
     }
     if (amountInput) {
       amountInput.value = state.balance >= MIN_WITHDRAW
-        ? String(Math.min(state.balance, 100))
+        ? String(Math.min(state.balance, MIN_WITHDRAW))
         : "";
     }
     updateWithdrawUI();
@@ -858,79 +954,34 @@
   }
 
   function sendWithdrawRequest(request) {
-    if (!telegram || typeof telegram.sendData !== "function") return "manual";
+    if (!telegram || typeof telegram.sendData !== "function") return "unavailable";
     try {
       telegram.sendData(JSON.stringify({
         type: "withdraw",
         id: request.id,
         amount: request.amount,
-        contact: request.contact,
         at: request.at
       }));
       return "sent";
     } catch (error) {
-      return "manual";
+      return "unavailable";
     }
   }
 
-  function copyWithdrawText(text) {
-    const done = () => toast("Скопировано", "Текст заявки можно отправить администратору.", "info");
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(() => {
-        const area = document.createElement("textarea");
-        area.value = text;
-        document.body.append(area);
-        area.select();
-        try { document.execCommand("copy"); done(); } catch (error) { /* Ignore. */ }
-        area.remove();
-      });
-      return;
-    }
-    const area = document.createElement("textarea");
-    area.value = text;
-    document.body.append(area);
-    area.select();
-    try { document.execCommand("copy"); done(); } catch (error) { /* Ignore. */ }
-    area.remove();
-  }
-
-  function shareWithdrawText(text) {
-    const url = `https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(text)}`;
-    try {
-      if (telegram && typeof telegram.openTelegramLink === "function") {
-        telegram.openTelegramLink(url);
-        return;
-      }
-    } catch (error) {
-      /* Fall through to the browser share window. */
-    }
-    window.open(url, "_blank", "noopener");
-  }
-
-  function showWithdrawResult(request, mode) {
+  function showWithdrawResult(request) {
     const result = document.getElementById("withdrawResult");
     if (!result) return;
-    const text = withdrawalText(request);
     result.hidden = false;
     result.innerHTML = `
-      <p>Заявка <strong>${escapeHtml(request.id)}</strong> на <strong>${formatStars(request.amount)} ★</strong> создана. ${mode === "sent" ? "Отправлена администратору." : "Скопируйте текст и отправьте администратору."}</p>
-      <div class="withdraw-actions">
-        <button class="btn btn-soft" type="button" id="copyWithdrawBtn">Скопировать</button>
-        <button class="btn btn-ghost" type="button" id="shareWithdrawBtn">Отправить</button>
-      </div>
-      <textarea id="withdrawText" readonly>${escapeHtml(text)}</textarea>
+      <p>Заявка <strong>${escapeHtml(request.id)}</strong> на <strong>${formatStars(request.amount)} ★</strong> отправлена администратору. Контакт для связи взят из ShuzaGram.</p>
     `;
-    document.getElementById("copyWithdrawBtn")?.addEventListener("click", () => copyWithdrawText(text));
-    document.getElementById("shareWithdrawBtn")?.addEventListener("click", () => shareWithdrawText(text));
   }
 
   function submitWithdraw() {
     if (withdrawLocked) return;
     const input = document.getElementById("withdrawAmount");
-    const contactInput = document.getElementById("withdrawContact");
     const amount = Math.round(safeNumber(input && input.value));
     const identity = telegramIdentity(telegramUser());
-    const contact = identity || (contactInput && contactInput.value || "").trim();
 
     if (state.balance < MIN_WITHDRAW) {
       toast("Мало звёзд", `Для вывода нужно минимум ${MIN_WITHDRAW} ★.`, "error");
@@ -940,15 +991,15 @@
       toast("Проверьте сумму", `Введите сумму от ${MIN_WITHDRAW} до ${formatStars(state.balance)} ★.`, "error");
       return;
     }
-    if (contact.length < 2) {
-      toast("Укажите контакт", "Напишите @username или другой способ связи.", "error");
+    if (!telegram || typeof telegram.sendData !== "function") {
+      toast("Откройте через ShuzaGram", "Заявка на вывод отправляется только из Mini App.", "error");
       return;
     }
 
     const request = {
       id: withdrawalId(),
       amount,
-      contact: contact.slice(0, 80),
+      contact: (identity || "ShuzaGram").slice(0, 80),
       at: Date.now(),
       status: "sent"
     };
@@ -960,7 +1011,17 @@
     sound("cash");
     haptic("success");
     const mode = sendWithdrawRequest(request);
-    showWithdrawResult(request, mode);
+    if (mode !== "sent") {
+      state.withdrawals = state.withdrawals.filter((item) => item.id !== request.id);
+      withdrawLocked = false;
+      adjustBalance(amount, { animate: false });
+      saveState();
+      updateWithdrawUI();
+      renderWithdrawals();
+      toast("Не удалось отправить", "Откройте KAZ через ShuzaGram и попробуйте снова.", "error");
+      return;
+    }
+    showWithdrawResult(request);
     updateWithdrawUI();
     renderWithdrawals();
     document.dispatchEvent(new CustomEvent("np:state"));
@@ -998,14 +1059,9 @@
         sound("click");
         if (action.dataset.action === "daily") openDaily();
         if (action.dataset.action === "daily-claim") claimDaily();
-        if (action.dataset.action === "topup") openModal("modalTopup");
+        if (action.dataset.action === "topup") openTopup();
         if (action.dataset.action === "withdraw") openWithdraw();
         return;
-      }
-
-      const topup = event.target.closest("[data-topup]");
-      if (topup) {
-        topUp(topup.dataset.topup);
       }
     });
 
@@ -1020,9 +1076,11 @@
     document.getElementById("openResetBtn2")?.addEventListener("click", () => openModal("modalReset"));
     document.getElementById("confirmResetBtn")?.addEventListener("click", confirmReset);
 
+    document.getElementById("topupAmount")?.addEventListener("input", updateTopupUI);
+    document.getElementById("topupSubmitBtn")?.addEventListener("click", submitTopup);
+
     const withdrawAmount = document.getElementById("withdrawAmount");
     withdrawAmount?.addEventListener("input", updateWithdrawUI);
-    document.getElementById("withdrawContact")?.addEventListener("input", updateWithdrawUI);
     document.getElementById("withdrawSubmitBtn")?.addEventListener("click", submitWithdraw);
     document.querySelectorAll("[data-withdraw-quick]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -1050,9 +1108,15 @@
     // If the tab stays open across midnight (or the clock changes), refresh
     // the daily-bonus state when the user comes back to the app.
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) updateDailyUI();
+      if (!document.hidden) {
+        updateDailyUI();
+        syncPurchases();
+      }
     });
-    window.addEventListener("pageshow", updateDailyUI);
+    window.addEventListener("pageshow", () => {
+      updateDailyUI();
+      syncPurchases();
+    });
 
     window.addEventListener("popstate", () => {
       const view = getViewFromHash();
