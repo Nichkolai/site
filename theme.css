@@ -798,8 +798,8 @@ textarea:focus { border-color: rgba(192, 132, 252, 0.55); }
   --purple: #c3a5df;
   --orange: #c49a78;
   --teal: #86bbae;
-  --accent: #6f4a8e;
-  --accent-2: #8a5a83;
+  --accent: #7a4fa2;
+  --accent-2: #8f5d94;
 }
 
 html, body { background: #0b0611; }
@@ -847,9 +847,9 @@ html, body { background: #0b0611; }
   color: #b9a5c8;
 }
 .game-chip.active {
-  background: #3a2651;
-  border-color: #5b3f76;
-  color: #f5eff8;
+  background: #43265f;
+  border-color: #6c498f;
+  color: #f8f1fb;
   box-shadow: none;
 }
 
@@ -865,7 +865,7 @@ html, body { background: #0b0611; }
 }
 .badge i { background: #cbb3de; box-shadow: none; animation: none; }
 .hero h1 { color: #f5eef9; }
-.hero h1 em { color: #cda7e6; text-shadow: none; }
+.hero h1 em { color: #d4a7ef; text-shadow: none; }
 .hero p { color: #b9a5c8; }
 .hero-star { opacity: 0.08; }
 .hero-star-b { opacity: 0.12; }
@@ -880,14 +880,14 @@ html, body { background: #0b0611; }
 .btn-primary,
 .spin-btn,
 .up-action {
-  color: #f9f4fb;
-  background: #6c4a8d;
-  border: 1px solid #8664a4;
+  color: #fbf6fd;
+  background: #7a4fa2;
+  border: 1px solid #966cc0;
   box-shadow: none;
 }
 .btn-primary:active,
 .spin-btn:active,
-.up-action:active { background: #5a3b78; }
+.up-action:active { background: #653e88; }
 .btn-ghost { background: #1c1228; border-color: #322344; }
 .btn-soft, .text-btn { color: #cdb6df; }
 .btn-soft { background: #24162f; border-color: #3a2849; }
@@ -905,7 +905,7 @@ html, body { background: #0b0611; }
 }
 .game-card:active { background: #241630; border-color: #4a3560; }
 .game-card .game-icon.green,
-.game-icon.green { color: #b9a5c8; background: #2a1a38; }
+.game-icon.green { color: #8fcbb5; background: #1d2a26; }
 .game-icon.purple { color: #c3a5df; background: #2a1a38; }
 .game-icon.teal { color: #86bbae; background: #1b2320; }
 .game-icon.orange { color: #c49a78; background: #231d1a; }
@@ -953,7 +953,7 @@ html, body { background: #0b0611; }
 .wheel-card { background: #1b1127; }
 .wheel-hub strong { color: #cdb6df; }
 .roulette-chip { background: #1b1126; border-color: #2d203a; color: #b9a5c8; }
-.roulette-chip.is-active { background: #312040; border-color: #5b3f76; color: #f5eff8; }
+.roulette-chip.is-active { background: #34204a; border-color: #65458a; color: #f8f1fb; }
 .roulette-numbers button { background: #221630; border-color: #2d203a; }
 .roulette-numbers button.red { background: #3b252b; }
 .mines-top { background: #150d20; border-color: #2d203a; }
@@ -997,7 +997,7 @@ html, body { background: #0b0611; }
 }
 .up-targets button { background: #241631; border-color: #322344; color: #c0adcf; }
 .up-targets button.is-active {
-  background: #242028;
+  background: #2f1d3f;
   border-color: #927a59;
   color: #e3cfa4;
   box-shadow: none;
@@ -1005,7 +1005,7 @@ html, body { background: #0b0611; }
 .up-head > div:first-child strong { color: #79b49f; }
 .up-head > div:nth-child(2) strong { color: #cdb6df; }
 .up-head > div:nth-child(3) strong { color: #d9b874; }
-.up-action { background: #6c4a8d; }
+.up-action { background: #7a4fa2; }
 
 .tabbar {
   background: rgba(15, 9, 24, 0.97);
@@ -1016,9 +1016,9 @@ html, body { background: #0b0611; }
 }
 .tab { color: #8e7b9f; }
 .tab.active {
-  background: #2f1d40;
-  box-shadow: inset 0 0 0 1px #4a3363;
-  color: #f5eff8;
+  background: #34204a;
+  box-shadow: inset 0 0 0 1px #533675;
+  color: #f8f1fb;
 }
 .tab.active .icon { color: #cdb6df; filter: none; }
 
@@ -1031,7 +1031,7 @@ html, body { background: #0b0611; }
 .modal-star { color: #d9b874; border-color: #3e2b4e; background: #2a1c36; }
 .modal-kicker { color: #c0a3df; }
 .topup-grid button { background: #221630; border-color: #2d203a; }
-.topup-grid .featured { background: #312040; border-color: #5b3f76; }
+.topup-grid .featured { background: #38234f; border-color: #5f3f82; }
 .topup-grid b { color: #d9b874; }
 .topup-check-btn { color: #cdb6df; }
 #topupChatBtn { margin-top: 8px; }
