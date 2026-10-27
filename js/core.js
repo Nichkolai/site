@@ -1038,14 +1038,30 @@
       closeModal("modalTopup");
       return;
     }
+    const problems = {
+      noauth: ["Не удалось определить аккаунт", "Откройте KAZ кнопкой «Открыть KAZ» из чата с ботом (команда /start) и нажмите проверку снова."],
+      unauthorized: ["Сессия устарела", "Откройте KAZ заново кнопкой из чата с ботом (команда /start)."],
+      storage: ["Хранилище платежей недоступно", "Платёж не потерян. Попробуйте через минуту."],
+      server: ["Ошибка сервера", "Попробуйте ещё раз через минуту."],
+      network: ["Нет связи с сервером", "Проверьте интернет и попробуйте снова."]
+    };
+    if (problems[lastSyncProblem]) {
+      toast(problems[lastSyncProblem][0], problems[lastSyncProblem][1], "info");
+      return;
+    }
     toast("Платёж пока не найден", "Если оплата прошла, подождите несколько секунд и попробуйте снова.", "info");
   }
 
   let purchaseSyncPromise = null;
   let lastPurchaseSync = 0;
+  let lastSyncProblem = "";
 
   async function syncPurchases(force = false) {
-    if (!hasAuth()) return 0;
+    if (!hasAuth()) {
+      lastSyncProblem = "noauth";
+      return 0;
+    }
+    lastSyncProblem = "";
     if (purchaseSyncPromise) return purchaseSyncPromise;
     if (!force && Date.now() - lastPurchaseSync < 3000) return 0;
     lastPurchaseSync = Date.now();
@@ -1062,9 +1078,16 @@
           signal: controller.signal,
           body: JSON.stringify(authBody({}))
         });
-        if (!response.ok) return 0;
+        if (!response.ok) {
+          lastSyncProblem = response.status === 401 ? "unauthorized"
+            : response.status === 503 ? "storage" : "server";
+          return 0;
+        }
         const payload = await response.json();
-        if (!payload || !Array.isArray(payload.purchases)) return 0;
+        if (!payload || !Array.isArray(payload.purchases)) {
+          lastSyncProblem = "server";
+          return 0;
+        }
 
         const known = new Set(state.purchases.map((item) => item.chargeId));
         let credited = 0;
@@ -1094,6 +1117,7 @@
         return credited;
       } catch (error) {
         /* Payment sync is best-effort; the next app open will retry. */
+        lastSyncProblem = "network";
         return 0;
       } finally {
         window.clearTimeout(timer);
