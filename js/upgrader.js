@@ -90,7 +90,8 @@
   }
 
   function resetResult(text = "Нажмите «Апгрейд»") {
-    if (elements.zone) elements.zone.classList.remove("is-spinning");
+    if (elements.zone) elements.zone.classList.remove("is-spinning", "is-win", "is-lose");
+    if (elements.emoji) elements.emoji.classList.remove("is-popping");
     if (elements.marker) {
       elements.marker.classList.remove("show");
       elements.marker.style.setProperty("--marker-angle", "0deg");
@@ -100,11 +101,19 @@
     elements.result.className = "up-result";
   }
 
+  function popEmoji() {
+    if (!elements.emoji) return;
+    elements.emoji.classList.remove("is-popping");
+    void elements.emoji.offsetWidth;
+    elements.emoji.classList.add("is-popping");
+  }
+
   function chooseTarget(value) {
     if (game.busy || !TARGETS.includes(value)) return;
     game.target = value;
     updateUI();
     resetResult();
+    popEmoji();
     NP.sound("click");
   }
 
@@ -182,12 +191,14 @@
       elements.result.textContent = "Проверяем…";
       elements.result.className = "up-result";
     }
+    if (elements.zone) elements.zone.classList.remove("is-spinning", "is-win", "is-lose");
+    if (elements.emoji) elements.emoji.classList.remove("is-popping");
     if (elements.marker) {
       const wheel = elements.zone;
-      if (wheel) wheel.classList.remove("is-spinning");
       elements.marker.classList.remove("show");
       elements.marker.style.setProperty("--marker-angle", "0deg");
       void elements.marker.offsetWidth;
+      if (wheel) void wheel.offsetWidth;
       if (wheel) wheel.classList.add("is-spinning");
       elements.marker.classList.add("show");
       // Two and a half turns before the pointer settles on the result.
@@ -224,7 +235,10 @@
         wager: bet
       });
 
-      if (elements.zone) elements.zone.classList.remove("is-spinning");
+      if (elements.zone) {
+        elements.zone.classList.remove("is-spinning");
+        elements.zone.classList.add(won ? "is-win" : "is-lose");
+      }
       game.busy = false;
       updateUI();
     }, 1100);

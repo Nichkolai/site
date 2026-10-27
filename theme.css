@@ -726,6 +726,26 @@ body.is-game .game-head { display: none; }
   transition: transform 1.05s cubic-bezier(0.12, 0.8, 0.2, 1);
   will-change: transform;
 }
+.up-wheel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    #c8f169 0 calc(var(--chance, 46.5) * 1%),
+    #1c3826 calc(var(--chance, 46.5) * 1%) 100%
+  );
+}
+@keyframes up-wheel-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(720deg); }
+}
+.up-wheel.is-spinning::after {
+  will-change: transform;
+  animation: up-wheel-turn 1.05s cubic-bezier(0.12, 0.8, 0.2, 1);
+}
 .up-wheel-core {
   position: relative;
   z-index: 1;
@@ -740,6 +760,48 @@ body.is-game .game-head { display: none; }
 .up-emoji {
   font-size: clamp(38px, 12vw, 52px);
   line-height: 1;
+}
+@keyframes up-emoji-tumble {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(4deg) scale(1.06); }
+}
+@keyframes up-emoji-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes up-emoji-win {
+  0% { transform: scale(0.84); }
+  55% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+@keyframes up-emoji-lose {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+@keyframes up-result-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.up-wheel.is-spinning .up-emoji {
+  animation: up-emoji-tumble 0.55s ease-in-out infinite;
+  will-change: transform;
+}
+.up-emoji.is-popping {
+  animation: up-emoji-pop 0.32s ease;
+}
+.up-wheel.is-win .up-emoji {
+  animation: up-emoji-win 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+}
+.up-wheel.is-lose .up-emoji {
+  animation: up-emoji-lose 0.34s ease;
+}
+.up-result.win,
+.up-result.lose {
+  animation: up-result-in 0.28s ease-out;
 }
 .up-wheel-core strong {
   margin-top: 7px;
@@ -860,5 +922,12 @@ body.is-game .game-head { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .up-wheel.is-spinning .up-marker { transition-duration: 0.01ms; }
-  .up-emoji { animation: none; }
+  .up-wheel.is-spinning::after { animation: none; }
+  .up-emoji,
+  .up-wheel.is-spinning .up-emoji,
+  .up-wheel.is-win .up-emoji,
+  .up-wheel.is-lose .up-emoji,
+  .up-emoji.is-popping,
+  .up-result.win,
+  .up-result.lose { animation: none; }
 }
