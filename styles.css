@@ -525,6 +525,7 @@ img, canvas { display: block; max-width: 100%; }
 }
 .topup-strip-balance strong { font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .topup-strip-balance strong small { color: var(--gold); font-size: 13px; }
+.topup-strip-rate { margin-top: 1px; color: var(--muted-2); font-size: 8.5px; font-weight: 500; letter-spacing: 0.02em; }
 .topup-strip .btn { min-height: 42px; padding: 0 14px; font-size: 12.5px; }
 
 /* ---------- sections ---------- */

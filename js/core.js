@@ -831,7 +831,7 @@
       return;
     }
     if (!telegram || typeof telegram.sendData !== "function") {
-      toast("Откройте через Telegram", "Пополнение доступно в Mini App по кнопке бота.", "error");
+      toast("Откройте через ShuzaGram", "Пополнение доступно в Mini App по кнопке бота.", "error");
       return;
     }
 
