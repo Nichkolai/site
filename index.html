@@ -1,16 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#07090d">
+  <meta name="theme-color" content="#100919">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="KAZ â€” ÐºÐ°Ð·Ð¸Ð½Ð¾ Ð² Telegram. Ð¡Ð»Ð¾Ñ‚Ñ‹, Ð±Ð»ÑÐºÐ´Ð¶ÐµÐº, Ñ€ÑƒÐ»ÐµÑ‚ÐºÐ°, Ð¼Ð¸Ð½Ñ‹, ÐºÑ€Ð°Ñˆ Ð¸ Ð°Ð¿Ð³Ñ€ÐµÐ¹Ð´.">
-  <title>KAZ â€” ÐºÐ°Ð·Ð¸Ð½Ð¾</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23080b0f'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23c8ff5e'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=14">
-  <link rel="stylesheet" href="games.css?v=14">
-  <link rel="stylesheet" href="theme.css?v=14">
+  <meta name="description" content="KAZ — казино в Telegram. Слоты, блэкджек, рулетка, мины, краш и апгрейд.">
+  <title>KAZ — казино</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23080b0f'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23d9b874'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="games.css?v=15">
+  <link rel="stylesheet" href="theme.css?v=15">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -42,21 +42,21 @@
 
   <div class="app">
     <header class="appbar">
-      <button class="icon-btn back-btn" id="backBtn" type="button" data-nav="lobby" aria-label="ÐÐ°Ð·Ð°Ð´" hidden>
+      <button class="icon-btn back-btn" id="backBtn" type="button" data-nav="lobby" aria-label="Назад" hidden>
         <svg class="icon"><use href="#i-arrow-left"></use></svg>
       </button>
 
-      <a class="brand" href="#lobby" data-nav="lobby" aria-label="KAZ â€” Ð½Ð° Ð³Ð»Ð°Ð²Ð½ÑƒÑŽ">
+      <a class="brand" href="#lobby" data-nav="lobby" aria-label="KAZ — на главную">
         <span class="brand-mark"><svg class="icon"><use href="#i-star"></use></svg></span>
-        <span class="brand-text"><strong>KAZ</strong><small>Ð¸Ð³Ñ€Ð°Ð¹ Ð½Ð° Ð·Ð²Ñ‘Ð·Ð´Ñ‹</small></span>
+        <span class="brand-text"><strong>KAZ</strong><small>играй на звёзды</small></span>
       </a>
 
       <div class="appbar-actions">
-        <button class="icon-btn sound-btn" id="soundBtn" type="button" aria-label="Ð’Ñ‹ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ Ð·Ð²ÑƒÐº" title="Ð—Ð²ÑƒÐº">
+        <button class="icon-btn sound-btn" id="soundBtn" type="button" aria-label="Выключить звук" title="Звук">
           <svg class="icon sound-on"><use href="#i-volume"></use></svg>
           <svg class="icon sound-off"><use href="#i-muted"></use></svg>
         </button>
-        <button class="balance-pill" type="button" data-action="topup" aria-label="ÐŸÐ¾Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð±Ð°Ð»Ð°Ð½Ñ Ð·Ð²Ñ‘Ð·Ð´">
+        <button class="balance-pill" type="button" data-action="topup" aria-label="Пополнить баланс звёзд">
           <svg class="icon star-icon"><use href="#i-star"></use></svg>
           <strong data-bind="balance">50</strong>
           <span class="balance-plus"><svg class="icon"><use href="#i-plus"></use></svg></span>
@@ -64,192 +64,192 @@
       </div>
     </header>
 
-    <nav class="game-rail" id="gameRail" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ñ‹Ð¹ Ð²Ñ‹Ð±Ð¾Ñ€ Ð¸Ð³Ñ€Ñ‹">
+    <nav class="game-rail" id="gameRail" aria-label="Быстрый выбор игры">
       <a class="game-chip" href="#slots" data-nav="slots">
-        <svg class="icon"><use href="#i-slots"></use></svg><span>Ð¡Ð»Ð¾Ñ‚Ñ‹</span>
+        <svg class="icon"><use href="#i-slots"></use></svg><span>Слоты</span>
       </a>
       <a class="game-chip" href="#upgrader" data-nav="upgrader">
-        <svg class="icon"><use href="#i-up"></use></svg><span>ÐÐ¿Ð³Ñ€ÐµÐ¹Ð´</span>
+        <svg class="icon"><use href="#i-up"></use></svg><span>Апгрейд</span>
       </a>
       <a class="game-chip" href="#crash" data-nav="crash">
-        <svg class="icon"><use href="#i-rocket"></use></svg><span>ÐšÑ€Ð°Ñˆ</span>
+        <svg class="icon"><use href="#i-rocket"></use></svg><span>Краш</span>
       </a>
       <a class="game-chip" href="#mines" data-nav="mines">
-        <svg class="icon"><use href="#i-bomb"></use></svg><span>ÐœÐ¸Ð½Ñ‹</span>
+        <svg class="icon"><use href="#i-bomb"></use></svg><span>Мины</span>
       </a>
       <a class="game-chip" href="#blackjack" data-nav="blackjack">
-        <svg class="icon"><use href="#i-cards"></use></svg><span>Ð‘Ð»ÑÐºÐ´Ð¶ÐµÐº</span>
+        <svg class="icon"><use href="#i-cards"></use></svg><span>Блэкджек</span>
       </a>
       <a class="game-chip" href="#roulette" data-nav="roulette">
-        <svg class="icon"><use href="#i-wheel"></use></svg><span>Ð ÑƒÐ»ÐµÑ‚ÐºÐ°</span>
+        <svg class="icon"><use href="#i-wheel"></use></svg><span>Рулетка</span>
       </a>
     </nav>
 
     <main class="main">
-      <!-- Ð›ÐžÐ‘Ð‘Ð˜ -->
+      <!-- ЛОББИ -->
       <section class="view active" id="view-lobby" data-view="lobby">
         <div class="hero">
           <div class="hero-top">
-            <span class="badge"><i></i> 6 Ð˜Ð“Ð </span>
+            <span class="badge"><i></i> 6 ИГР</span>
           </div>
-          <h1>Ð˜Ð³Ñ€Ð°Ð¹ Ð½Ð°<br><em>Ð·Ð²Ñ‘Ð·Ð´Ñ‹</em></h1>
-          <p>6 Ð¸Ð³Ñ€, Ð±Ñ‹ÑÑ‚Ñ€Ñ‹Ðµ Ñ€Ð°ÑƒÐ½Ð´Ñ‹ Ð¸ ÐµÐ¶ÐµÐ´Ð½ÐµÐ²Ð½Ñ‹Ðµ Ð±Ð¾Ð½ÑƒÑÑ‹.</p>
+          <h1>Играй на<br><em>звёзды</em></h1>
+          <p>6 игр, быстрые раунды и ежедневные бонусы.</p>
           <div class="hero-actions">
             <button class="btn btn-primary" id="heroBonusBtn" type="button" data-action="daily-claim">
               <svg class="icon"><use href="#i-spark"></use></svg>
-              <span>Ð—Ð°Ð±Ñ€Ð°Ñ‚ÑŒ 10 Ð·Ð²Ñ‘Ð·Ð´</span>
+              <span>Забрать 10 звёзд</span>
             </button>
-            <a class="btn btn-ghost" href="#slots" data-nav="slots">Ð˜Ð³Ñ€Ð°Ñ‚ÑŒ</a>
+            <a class="btn btn-ghost" href="#slots" data-nav="slots">Играть</a>
           </div>
           <button class="withdraw-entry" type="button" data-action="withdraw">
             <span class="withdraw-entry-icon"><svg class="icon"><use href="#i-star"></use></svg></span>
-            <span class="withdraw-entry-copy"><strong>Ð’Ñ‹Ð²Ð¾Ð´ Ð·Ð²Ñ‘Ð·Ð´</strong><small>Ð—Ð°ÑÐ²ÐºÐ° Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ñƒ</small></span>
+            <span class="withdraw-entry-copy"><strong>Вывод звёзд</strong><small>Заявка администратору</small></span>
             <svg class="icon withdraw-entry-arrow"><use href="#i-arrow"></use></svg>
           </button>
-          <span class="hero-star hero-star-a" aria-hidden="true">â˜…</span>
-          <span class="hero-star hero-star-b" aria-hidden="true">âœ¦</span>
-          <span class="hero-star hero-star-c" aria-hidden="true">â˜…</span>
+          <span class="hero-star hero-star-a" aria-hidden="true">★</span>
+          <span class="hero-star hero-star-b" aria-hidden="true">✦</span>
+          <span class="hero-star hero-star-c" aria-hidden="true">★</span>
         </div>
 
         <article class="panel topup-strip">
           <div class="topup-strip-balance">
-            <span>Ð‘Ð°Ð»Ð°Ð½Ñ</span>
-            <strong><span data-bind="balance">50</span> <small>â˜…</small></strong>
-            <small class="topup-strip-rate">1 â˜… = 1 Telegram Star</small>
+            <span>Баланс</span>
+            <strong><span data-bind="balance">50</span> <small>★</small></strong>
+            <small class="topup-strip-rate">1 ★ = 1 Telegram Star</small>
           </div>
           <button class="btn btn-primary" type="button" data-action="topup">
             <svg class="icon"><use href="#i-plus"></use></svg>
-            ÐŸÐ¾Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ
+            Пополнить
           </button>
         </article>
 
         <div class="section-head">
-          <h2>Ð˜Ð³Ñ€Ñ‹</h2>
-          <span>6 Ñ€ÐµÐ¶Ð¸Ð¼Ð¾Ð²</span>
+          <h2>Игры</h2>
+          <span>6 режимов</span>
         </div>
 
         <div class="game-grid">
           <a class="game-card" href="#mines" data-nav="mines">
             <span class="game-icon purple"><svg class="icon"><use href="#i-bomb"></use></svg></span>
-            <span class="game-copy"><strong>ÐœÐ¸Ð½Ñ‹</strong><small>5 Ð¼Ð¸Ð½ Â· 25 ÐºÐ»ÐµÑ‚Ð¾Ðº</small></span>
+            <span class="game-copy"><strong>Мины</strong><small>5 мин · 25 клеток</small></span>
           </a>
           <a class="game-card" href="#crash" data-nav="crash">
             <span class="game-icon orange"><svg class="icon"><use href="#i-rocket"></use></svg></span>
-            <span class="game-copy"><strong>ÐšÑ€Ð°Ñˆ</strong><small>Ð¾Ñ‚ Ã—1.00 Ð´Ð¾ Ã—50</small></span>
+            <span class="game-copy"><strong>Краш</strong><small>от ×1.00 до ×50</small></span>
           </a>
           <a class="game-card" href="#upgrader" data-nav="upgrader">
             <span class="game-icon teal"><svg class="icon"><use href="#i-up"></use></svg></span>
-            <span class="game-copy"><strong>ÐÐ¿Ð³Ñ€ÐµÐ¹Ð´</strong><small>ÑˆÐ°Ð½Ñ Ð´Ð¾ 62%</small></span>
+            <span class="game-copy"><strong>Апгрейд</strong><small>шанс до 62%</small></span>
           </a>
           <a class="game-card" href="#slots" data-nav="slots">
             <span class="game-icon green"><svg class="icon"><use href="#i-slots"></use></svg></span>
-            <span class="game-copy"><strong>Ð¡Ð»Ð¾Ñ‚Ñ‹</strong><small>5 Ð»Ð¸Ð½Ð¸Ð¹ Â· Ð´Ð¾ Ã—240</small></span>
+            <span class="game-copy"><strong>Слоты</strong><small>5 линий · до ×240</small></span>
           </a>
           <a class="game-card" href="#blackjack" data-nav="blackjack">
             <span class="game-icon blue"><svg class="icon"><use href="#i-cards"></use></svg></span>
-            <span class="game-copy"><strong>Ð‘Ð»ÑÐºÐ´Ð¶ÐµÐº</strong><small>6:5 Â· Ð´Ð¸Ð»ÐµÑ€ 17</small></span>
+            <span class="game-copy"><strong>Блэкджек</strong><small>6:5 · дилер 17</small></span>
           </a>
           <a class="game-card" href="#roulette" data-nav="roulette">
             <span class="game-icon red"><svg class="icon"><use href="#i-wheel"></use></svg></span>
-            <span class="game-copy"><strong>Ð ÑƒÐ»ÐµÑ‚ÐºÐ°</strong><small>38 Ñ‡Ð¸ÑÐµÐ» Â· 0 Ð¸ 00</small></span>
+            <span class="game-copy"><strong>Рулетка</strong><small>38 чисел · 0 и 00</small></span>
           </a>
         </div>
 
         <button class="daily-card" type="button" data-action="daily">
           <span class="daily-icon"><svg class="icon"><use href="#i-spark"></use></svg></span>
-          <span class="daily-copy"><strong>Ð•Ð¶ÐµÐ´Ð½ÐµÐ²Ð½Ñ‹Ð¹ Ð±Ð¾Ð½ÑƒÑ</strong><small>+10 Ð·Ð²Ñ‘Ð·Ð´ ÐºÐ°Ð¶Ð´Ñ‹Ð¹ Ð´ÐµÐ½ÑŒ</small></span>
+          <span class="daily-copy"><strong>Ежедневный бонус</strong><small>+10 звёзд каждый день</small></span>
           <span class="daily-arrow"><svg class="icon"><use href="#i-arrow"></use></svg></span>
         </button>
 
         <div class="section-head">
-          <h2>ÐŸÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ðµ Ð¸Ð³Ñ€Ñ‹</h2>
-          <a href="#history" data-nav="history">Ð’ÑÐµ</a>
+          <h2>Последние игры</h2>
+          <a href="#history" data-nav="history">Все</a>
         </div>
         <div class="recent-list" id="recentGames"></div>
 
         <footer class="app-footer">
-          <span>KAZ Â· 6 Ð¸Ð³Ñ€</span>
-          <span>Ð•Ð¶ÐµÐ´Ð½ÐµÐ²Ð½Ñ‹Ð¹ Ð±Ð¾Ð½ÑƒÑ Â· 10 â˜…</span>
+          <span>KAZ · 6 игр</span>
+          <span>Ежедневный бонус · 10 ★</span>
         </footer>
       </section>
 
-      <!-- Ð¡Ð›ÐžÐ¢Ð« -->
+      <!-- СЛОТЫ -->
       <section class="view" id="view-slots" data-view="slots">
         <div class="game-head">
           <div>
-            <span class="kicker">ÐÐ²Ñ‚Ð¾Ð¼Ð°Ñ‚</span>
-            <h1>Ð¡Ð»Ð¾Ñ‚Ñ‹</h1>
-            <p>Ð¡Ð¾Ð±ÐµÑ€Ð¸ 3 Ð¾Ð´Ð¸Ð½Ð°ÐºÐ¾Ð²Ñ‹Ñ… ÑÐ¸Ð¼Ð²Ð¾Ð»Ð° Ð½Ð° Ð¾Ð´Ð½Ð¾Ð¹ Ð¸Ð· 5 Ð»Ð¸Ð½Ð¸Ð¹.</p>
+            <span class="kicker">Автомат</span>
+            <h1>Слоты</h1>
+            <p>Собери 3 одинаковых символа на одной из 5 линий.</p>
           </div>
         </div>
 
         <div class="slot-machine">
           <div class="slot-marquee">
             <span class="marquee-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-            <span class="slot-title">Ð¡Ð›ÐžÐ¢Ð«</span>
+            <span class="slot-title">СЛОТЫ</span>
           </div>
           <div class="slot-stage">
-            <div class="slot-grid" id="slotGrid" aria-label="Ð˜Ð³Ñ€Ð¾Ð²Ð¾Ðµ Ð¿Ð¾Ð»Ðµ ÑÐ»Ð¾Ñ‚Ð°">
+            <div class="slot-grid" id="slotGrid" aria-label="Игровое поле слота">
               <div class="slot-reel" data-reel="0"></div>
               <div class="slot-reel" data-reel="1"></div>
               <div class="slot-reel" data-reel="2"></div>
             </div>
             <div class="slot-win" id="slotWin" aria-live="polite">
-              <span>Ð“Ð¾Ñ‚Ð¾Ð² Ðº Ð¸Ð³Ñ€Ðµ?</span>
-              <strong>ÐšÑ€ÑƒÑ‚Ð¸ Ð¸ Ð»Ð¾Ð²Ð¸ ÑƒÐ´Ð°Ñ‡Ñƒ</strong>
+              <span>Готов к игре?</span>
+              <strong>Крути и лови удачу</strong>
             </div>
           </div>
           <div class="slot-controls">
             <div class="stepper">
-              <button type="button" id="slotBetDown" aria-label="Ð£Ð¼ÐµÐ½ÑŒÑˆÐ¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">âˆ’</button>
-              <div><span>Ð¡Ñ‚Ð°Ð²ÐºÐ°</span><strong><span id="slotBet">50</span> â˜…</strong></div>
-              <button type="button" id="slotBetUp" aria-label="Ð£Ð²ÐµÐ»Ð¸Ñ‡Ð¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">+</button>
+              <button type="button" id="slotBetDown" aria-label="Уменьшить ставку">−</button>
+              <div><span>Ставка</span><strong><span id="slotBet">50</span> ★</strong></div>
+              <button type="button" id="slotBetUp" aria-label="Увеличить ставку">+</button>
             </div>
             <button class="btn btn-primary spin-btn" id="spinBtn" type="button">
               <svg class="icon"><use href="#i-reset"></use></svg>
-              <span><strong>ÐšÑ€ÑƒÑ‚Ð¸Ñ‚ÑŒ</strong><small>5 Ð»Ð¸Ð½Ð¸Ð¹</small></span>
+              <span><strong>Крутить</strong><small>5 линий</small></span>
             </button>
           </div>
-          <div class="bet-tools" role="group" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ ÑÑ‚Ð°Ð²ÐºÐ¸">
-            <button type="button" id="slotBetHalf">Â½</button>
-            <button type="button" id="slotBetDouble">Ã—2</button>
+          <div class="bet-tools" role="group" aria-label="Быстрое изменение ставки">
+            <button type="button" id="slotBetHalf">½</button>
+            <button type="button" id="slotBetDouble">×2</button>
             <button type="button" id="slotMax">MAX</button>
           </div>
         </div>
 
         <details class="panel details-panel">
-          <summary>Ð¢Ð°Ð±Ð»Ð¸Ñ†Ð° Ð²Ñ‹Ð¿Ð»Ð°Ñ‚ <span class="summary-note">Ã— Ðº Ð»Ð¸Ð½Ð¸Ð¸</span></summary>
+          <summary>Таблица выплат <span class="summary-note">× к линии</span></summary>
           <div class="paytable">
-            <div><span>ðŸ’ŽðŸ’ŽðŸ’Ž</span><strong>Ã—240</strong></div>
-            <div><span class="pay-seven">777</span><strong>Ã—100</strong></div>
-            <div><span>â­â­â­</span><strong>Ã—50</strong></div>
-            <div><span>ðŸ””ðŸ””ðŸ””</span><strong>Ã—24</strong></div>
-            <div><span>ðŸ‹ðŸ‹ðŸ‹</span><strong>Ã—16</strong></div>
-            <div><span>ðŸ’ðŸ’ðŸ’</span><strong>Ã—10</strong></div>
+            <div><span>💎💎💎</span><strong>×240</strong></div>
+            <div><span class="pay-seven">777</span><strong>×100</strong></div>
+            <div><span>⭐⭐⭐</span><strong>×50</strong></div>
+            <div><span>🔔🔔🔔</span><strong>×24</strong></div>
+            <div><span>🍋🍋🍋</span><strong>×16</strong></div>
+            <div><span>🍒🍒🍒</span><strong>×10</strong></div>
           </div>
-          <p class="panel-note">Ð’Ñ‹Ð¿Ð»Ð°Ñ‚Ð° Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð·Ð° Ñ‚Ñ€Ð¸ Ð¾Ð´Ð¸Ð½Ð°ÐºÐ¾Ð²Ñ‹Ñ… ÑÐ¸Ð¼Ð²Ð¾Ð»Ð°. Ð¡Ñ‚Ð°Ð²ÐºÐ° Ð´ÐµÐ»Ð¸Ñ‚ÑÑ Ð½Ð° 5 Ð»Ð¸Ð½Ð¸Ð¹.</p>
+          <p class="panel-note">Выплата только за три одинаковых символа. Ставка делится на 5 линий.</p>
         </details>
       </section>
 
-      <!-- Ð‘Ð›Ð­ÐšÐ”Ð–Ð•Ðš -->
+      <!-- БЛЭКДЖЕК -->
       <section class="view" id="view-blackjack" data-view="blackjack">
         <div class="game-head">
           <div>
-            <span class="kicker">ÐšÐ°Ñ€Ñ‚Ð¾Ñ‡Ð½Ð°Ñ Ð¸Ð³Ñ€Ð°</span>
-            <h1>Ð‘Ð»ÑÐºÐ´Ð¶ÐµÐº</h1>
-            <p>ÐÐ°Ð±ÐµÑ€Ð¸ 21 Ð¸Ð»Ð¸ Ð¾Ð±Ñ‹Ð³Ñ€Ð°Ð¹ Ð´Ð¸Ð»ÐµÑ€Ð°. Ð‘Ð»ÑÐºÐ´Ð¶ÐµÐº Ð¿Ð»Ð°Ñ‚Ð¸Ñ‚ 6:5.</p>
+            <span class="kicker">Карточная игра</span>
+            <h1>Блэкджек</h1>
+            <p>Набери 21 или обыграй дилера. Блэкджек платит 6:5.</p>
           </div>
         </div>
 
         <div class="bj-table">
-          <div class="table-rule">BLACKJACK 6:5 Â· Ð”Ð˜Ð›Ð•Ð  Ð”ÐžÐ‘Ð˜Ð ÐÐ•Ð¢ ÐÐ 17</div>
+          <div class="table-rule">BLACKJACK 6:5 · ДИЛЕР ДОБИРАЕТ НА 17</div>
           <div class="hand-block">
-            <div class="hand-head"><span><i class="dot"></i> Ð”Ð¸Ð»ÐµÑ€</span><strong class="score-pill" id="dealerScore">â€”</strong></div>
+            <div class="hand-head"><span><i class="dot"></i> Дилер</span><strong class="score-pill" id="dealerScore">—</strong></div>
             <div class="hand-cards" id="dealerHand"></div>
           </div>
-          <div class="bj-status" id="bjStatus">Ð’Ñ‹Ð±ÐµÑ€Ð¸Ñ‚Ðµ ÑÑ‚Ð°Ð²ÐºÑƒ Ð¸ Ð½Ð°Ñ‡Ð½Ð¸Ñ‚Ðµ Ñ€Ð°Ð·Ð´Ð°Ñ‡Ñƒ</div>
+          <div class="bj-status" id="bjStatus">Выберите ставку и начните раздачу</div>
           <div class="hand-block">
-            <div class="hand-head"><span><i class="dot player"></i> Ð’Ñ‹</span><strong class="score-pill" id="playerScore">â€”</strong></div>
+            <div class="hand-head"><span><i class="dot player"></i> Вы</span><strong class="score-pill" id="playerScore">—</strong></div>
             <div class="hand-cards" id="playerHand"></div>
           </div>
           <div class="bet-chips" id="bjBetChips">
@@ -258,64 +258,64 @@
             <button type="button" class="bet-chip" data-bj-bet="25">25</button>
             <button type="button" class="bet-chip active" data-bj-bet="50">50</button>
           </div>
-          <div class="bet-tools bet-tools-wide" role="group" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ ÑÑ‚Ð°Ð²ÐºÐ¸">
-            <button type="button" id="bjBetHalf">Â½</button>
-            <button type="button" id="bjBetDouble">Ã—2</button>
+          <div class="bet-tools bet-tools-wide" role="group" aria-label="Быстрое изменение ставки">
+            <button type="button" id="bjBetHalf">½</button>
+            <button type="button" id="bjBetDouble">×2</button>
             <button type="button" id="bjBetMax">MAX</button>
           </div>
           <div class="bet-line">
-            <span>Ð¡Ñ‚Ð°Ð²ÐºÐ° <strong><span id="bjBetAmount">50</span> â˜…</strong></span>
-            <button class="btn btn-primary" id="bjDealBtn" type="button">Ð Ð°Ð·Ð´Ð°Ñ‚ÑŒ</button>
+            <span>Ставка <strong><span id="bjBetAmount">50</span> ★</strong></span>
+            <button class="btn btn-primary" id="bjDealBtn" type="button">Раздать</button>
           </div>
           <div class="bj-actions" id="bjActions" hidden>
-            <button class="btn btn-ghost" id="bjHitBtn" type="button">Ð•Ñ‰Ñ‘</button>
-            <button class="btn btn-soft" id="bjDoubleBtn" type="button">Ð£Ð´Ð²Ð¾Ð¸Ñ‚ÑŒ</button>
-            <button class="btn btn-primary" id="bjStandBtn" type="button">Ð¥Ð²Ð°Ñ‚Ð¸Ñ‚</button>
+            <button class="btn btn-ghost" id="bjHitBtn" type="button">Ещё</button>
+            <button class="btn btn-soft" id="bjDoubleBtn" type="button">Удвоить</button>
+            <button class="btn btn-primary" id="bjStandBtn" type="button">Хватит</button>
           </div>
         </div>
 
         <details class="panel details-panel">
-          <summary>ÐŸÑ€Ð°Ð²Ð¸Ð»Ð°</summary>
+          <summary>Правила</summary>
           <ul class="rules-list">
-            <li>ÐšÐ°Ñ€Ñ‚Ñ‹ 2â€“10 â€” Ð¿Ð¾ Ð½Ð¾Ð¼Ð¸Ð½Ð°Ð»Ñƒ, Ñ„Ð¸Ð³ÑƒÑ€Ñ‹ â€” 10, Ñ‚ÑƒÐ· â€” 1 Ð¸Ð»Ð¸ 11.</li>
-            <li>Â«Ð•Ñ‰Ñ‘Â» â€” Ð²Ð·ÑÑ‚ÑŒ ÐºÐ°Ñ€Ñ‚Ñƒ, Â«Ð¥Ð²Ð°Ñ‚Ð¸Ñ‚Â» â€” Ð¿ÐµÑ€ÐµÐ´Ð°Ñ‚ÑŒ Ñ…Ð¾Ð´ Ð´Ð¸Ð»ÐµÑ€Ñƒ.</li>
-            <li>Â«Ð£Ð´Ð²Ð¾Ð¸Ñ‚ÑŒÂ» ÑƒÐ´Ð²Ð°Ð¸Ð²Ð°ÐµÑ‚ ÑÑ‚Ð°Ð²ÐºÑƒ Ð¸ Ð²Ñ‹Ð´Ð°Ñ‘Ñ‚ Ñ€Ð¾Ð²Ð½Ð¾ Ð¾Ð´Ð½Ñƒ ÐºÐ°Ñ€Ñ‚Ñƒ.</li>
-            <li>Ð”Ð¸Ð»ÐµÑ€ Ð´Ð¾Ð±Ð¸Ñ€Ð°ÐµÑ‚ Ð´Ð¾ 17, Ð²ÐºÐ»ÑŽÑ‡Ð°Ñ Ð¼ÑÐ³ÐºÐ¸Ðµ 17.</li>
+            <li>Карты 2–10 — по номиналу, фигуры — 10, туз — 1 или 11.</li>
+            <li>«Ещё» — взять карту, «Хватит» — передать ход дилеру.</li>
+            <li>«Удвоить» удваивает ставку и выдаёт ровно одну карту.</li>
+            <li>Дилер добирает до 17, включая мягкие 17.</li>
           </ul>
         </details>
       </section>
 
-      <!-- Ð Ð£Ð›Ð•Ð¢ÐšÐ -->
+      <!-- РУЛЕТКА -->
       <section class="view" id="view-roulette" data-view="roulette">
         <div class="game-head">
           <div>
-            <span class="kicker">ÐšÐ¾Ð»ÐµÑÐ¾</span>
-            <h1>Ð ÑƒÐ»ÐµÑ‚ÐºÐ°</h1>
-            <p>38 ÑÐµÐºÑ‚Ð¾Ñ€Ð¾Ð²: 0 Ð¸ 00. Ð¡Ñ‚Ð°Ð²ÑŒÑ‚Ðµ Ð½Ð° Ñ‡Ð¸ÑÐ»Ð¾, Ñ†Ð²ÐµÑ‚ Ð¸Ð»Ð¸ Ð´Ð¸Ð°Ð¿Ð°Ð·Ð¾Ð½.</p>
+            <span class="kicker">Колесо</span>
+            <h1>Рулетка</h1>
+            <p>38 секторов: 0 и 00. Ставьте на число, цвет или диапазон.</p>
           </div>
         </div>
 
         <div class="panel wheel-card">
           <div class="wheel-wrap">
             <span class="wheel-pointer" aria-hidden="true"></span>
-            <canvas id="rouletteWheel" width="720" height="720" aria-label="ÐšÐ¾Ð»ÐµÑÐ¾ Ñ€ÑƒÐ»ÐµÑ‚ÐºÐ¸"></canvas>
+            <canvas id="rouletteWheel" width="720" height="720" aria-label="Колесо рулетки"></canvas>
             <div class="wheel-hub"><strong>KAZ</strong></div>
           </div>
           <div class="result-line" aria-live="polite">
-            <span>Ð ÐµÐ·ÑƒÐ»ÑŒÑ‚Ð°Ñ‚</span>
-            <strong class="result-number" id="resultNumber">â€”</strong>
-            <small id="resultCopy">Ð¡Ð´ÐµÐ»Ð°Ð¹Ñ‚Ðµ ÑÑ‚Ð°Ð²ÐºÑƒ</small>
+            <span>Результат</span>
+            <strong class="result-number" id="resultNumber">—</strong>
+            <small id="resultCopy">Сделайте ставку</small>
           </div>
           <div class="last-row">
-            <span>Ð‘Ñ‹Ð»Ð¾</span>
-            <div class="last-numbers" id="lastNumbers"><i>ÐŸÐ¾ÐºÐ° Ð¿ÑƒÑÑ‚Ð¾</i></div>
+            <span>Было</span>
+            <div class="last-numbers" id="lastNumbers"><i>Пока пусто</i></div>
           </div>
         </div>
 
         <div class="panel board-panel">
           <div class="board-head">
-            <div><span class="kicker">Ð¡Ñ‚Ð¾Ð»</span><h2>Ð¡Ñ‚Ð°Ð²ÐºÐ¸ <strong><span id="rouletteStake">0</span> â˜…</strong></h2></div>
-            <div class="chip-picker" aria-label="ÐÐ¾Ð¼Ð¸Ð½Ð°Ð» Ñ„Ð¸ÑˆÐºÐ¸">
+            <div><span class="kicker">Стол</span><h2>Ставки <strong><span id="rouletteStake">0</span> ★</strong></h2></div>
+            <div class="chip-picker" aria-label="Номинал фишки">
               <button type="button" class="roulette-chip" data-chip="1">1</button>
               <button type="button" class="roulette-chip" data-chip="2">2</button>
               <button type="button" class="roulette-chip" data-chip="5">5</button>
@@ -333,181 +333,181 @@
 
           <div class="outside-bets">
             <div class="dozens">
-              <button type="button" data-bet="dozen:1">1â€“12</button>
-              <button type="button" data-bet="dozen:2">13â€“24</button>
-              <button type="button" data-bet="dozen:3">25â€“36</button>
+              <button type="button" data-bet="dozen:1">1–12</button>
+              <button type="button" data-bet="dozen:2">13–24</button>
+              <button type="button" data-bet="dozen:3">25–36</button>
             </div>
             <div class="even-bets">
-              <button type="button" data-bet="low">1â€“18</button>
-              <button type="button" data-bet="even">Ð§Ñ‘Ñ‚</button>
-              <button type="button" class="bet-red" data-bet="red"><i></i> ÐšÑ€Ð°ÑÐ½Ð¾Ðµ</button>
-              <button type="button" class="bet-black" data-bet="black"><i></i> Ð§Ñ‘Ñ€Ð½Ð¾Ðµ</button>
-              <button type="button" data-bet="odd">ÐÐµÑ‡Ñ‘Ñ‚</button>
-              <button type="button" data-bet="high">19â€“36</button>
+              <button type="button" data-bet="low">1–18</button>
+              <button type="button" data-bet="even">Чёт</button>
+              <button type="button" class="bet-red" data-bet="red"><i></i> Красное</button>
+              <button type="button" class="bet-black" data-bet="black"><i></i> Чёрное</button>
+              <button type="button" data-bet="odd">Нечёт</button>
+              <button type="button" data-bet="high">19–36</button>
             </div>
           </div>
 
           <div class="roulette-actions">
-            <button type="button" class="text-btn" id="rouletteUndo">ÐžÑ‚Ð¼ÐµÐ½Ð¸Ñ‚ÑŒ</button>
-            <button type="button" class="text-btn" id="rouletteClear">ÐžÑ‡Ð¸ÑÑ‚Ð¸Ñ‚ÑŒ</button>
+            <button type="button" class="text-btn" id="rouletteUndo">Отменить</button>
+            <button type="button" class="text-btn" id="rouletteClear">Очистить</button>
           </div>
-          <div class="bet-tools bet-tools-wide" role="group" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ ÑÑ‚Ð°Ð²ÐºÐ¸">
-            <button type="button" id="rouletteHalf">Â½</button>
-            <button type="button" id="rouletteDouble">Ã—2</button>
+          <div class="bet-tools bet-tools-wide" role="group" aria-label="Быстрое изменение ставки">
+            <button type="button" id="rouletteHalf">½</button>
+            <button type="button" id="rouletteDouble">×2</button>
             <button type="button" id="rouletteMax">MAX</button>
           </div>
           <button class="btn btn-primary spin-btn" id="rouletteSpin" type="button">
             <svg class="icon"><use href="#i-wheel"></use></svg>
-            <span><strong>Ð—Ð°Ð¿ÑƒÑÑ‚Ð¸Ñ‚ÑŒ</strong><small id="rouletteSpinSub">Ð¡Ñ‚Ð°Ð²Ð¾Ðº Ð½ÐµÑ‚</small></span>
+            <span><strong>Запустить</strong><small id="rouletteSpinSub">Ставок нет</small></span>
           </button>
-          <p class="panel-note">Ð§Ð¸ÑÐ»Ð¾ â€” 35:1, Ð´ÑŽÐ¶Ð¸Ð½Ð° â€” 2:1, Ñ€Ð°Ð²Ð½Ñ‹Ðµ ÑˆÐ°Ð½ÑÑ‹ â€” 1:1. 0 Ð¸ 00 Ð·Ð°Ð±Ð¸Ñ€Ð°ÑŽÑ‚ Ð²Ð½ÐµÑˆÐ½Ð¸Ðµ ÑÑ‚Ð°Ð²ÐºÐ¸.</p>
+          <p class="panel-note">Число — 35:1, дюжина — 2:1, равные шансы — 1:1. 0 и 00 забирают внешние ставки.</p>
         </div>
       </section>
 
-      <!-- ÐœÐ˜ÐÐ« -->
+      <!-- МИНЫ -->
       <section class="view" id="view-mines" data-view="mines">
         <div class="game-head">
           <div>
-            <span class="kicker">ÐŸÐ¾Ð»Ðµ</span>
-            <h1>ÐœÐ¸Ð½Ñ‹</h1>
-            <p>ÐžÑ‚ÐºÑ€Ñ‹Ð²Ð°Ð¹ Ð·Ð²Ñ‘Ð·Ð´Ñ‹, Ð¾Ð±Ñ…Ð¾Ð´Ð¸ Ð¼Ð¸Ð½Ñ‹ Ð¸ Ð·Ð°Ð±Ð¸Ñ€Ð°Ð¹ Ð¼Ð½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ.</p>
+            <span class="kicker">Поле</span>
+            <h1>Мины</h1>
+            <p>Открывай звёзды, обходи мины и забирай множитель.</p>
           </div>
         </div>
 
         <div class="panel mines-panel">
           <div class="mines-top">
-            <div><span>ÐœÐ½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ</span><strong id="minesMultiplier">1.00Ã—</strong></div>
-            <div><span>Ð¡Ð»ÐµÐ´ÑƒÑŽÑ‰Ð¸Ð¹</span><strong id="minesNext">1.15Ã—</strong></div>
-            <span class="small-pill">5 Ð¼Ð¸Ð½</span>
+            <div><span>Множитель</span><strong id="minesMultiplier">1.00×</strong></div>
+            <div><span>Следующий</span><strong id="minesNext">1.15×</strong></div>
+            <span class="small-pill">5 мин</span>
           </div>
-          <div class="mines-grid" id="minesGrid" aria-label="ÐŸÐ¾Ð»Ðµ 5 Ð½Ð° 5"></div>
-          <p class="game-status" id="minesStatus">Ð¡Ð´ÐµÐ»Ð°Ð¹Ñ‚Ðµ ÑÑ‚Ð°Ð²ÐºÑƒ Ð¸ Ð¾Ñ‚ÐºÑ€Ð¾Ð¹Ñ‚Ðµ Ð¿ÐµÑ€Ð²ÑƒÑŽ ÐºÐ»ÐµÑ‚ÐºÑƒ.</p>
+          <div class="mines-grid" id="minesGrid" aria-label="Поле 5 на 5"></div>
+          <p class="game-status" id="minesStatus">Сделайте ставку и откройте первую клетку.</p>
           <div class="stepper-row">
             <div class="stepper">
-              <button type="button" id="minesBetDown" aria-label="Ð£Ð¼ÐµÐ½ÑŒÑˆÐ¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">âˆ’</button>
-              <div><span>Ð¡Ñ‚Ð°Ð²ÐºÐ°</span><strong><span id="minesBet">50</span> â˜…</strong></div>
-              <button type="button" id="minesBetUp" aria-label="Ð£Ð²ÐµÐ»Ð¸Ñ‡Ð¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">+</button>
+              <button type="button" id="minesBetDown" aria-label="Уменьшить ставку">−</button>
+              <div><span>Ставка</span><strong><span id="minesBet">50</span> ★</strong></div>
+              <button type="button" id="minesBetUp" aria-label="Увеличить ставку">+</button>
             </div>
-            <button class="btn btn-primary" id="minesAction" type="button">ÐÐ°Ñ‡Ð°Ñ‚ÑŒ</button>
+            <button class="btn btn-primary" id="minesAction" type="button">Начать</button>
           </div>
-          <div class="bet-tools bet-tools-wide" role="group" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ ÑÑ‚Ð°Ð²ÐºÐ¸">
-            <button type="button" id="minesBetHalf">Â½</button>
-            <button type="button" id="minesBetDouble">Ã—2</button>
+          <div class="bet-tools bet-tools-wide" role="group" aria-label="Быстрое изменение ставки">
+            <button type="button" id="minesBetHalf">½</button>
+            <button type="button" id="minesBetDouble">×2</button>
             <button type="button" id="minesBetMax">MAX</button>
           </div>
-          <p class="panel-note">ÐœÐ°ÐºÑÐ¸Ð¼Ð°Ð»ÑŒÐ½Ñ‹Ð¹ Ð²Ñ‹Ð¸Ð³Ñ€Ñ‹Ñˆ â€” Ã—250 Ð¾Ñ‚ ÑÑ‚Ð°Ð²ÐºÐ¸. Ð—Ð°Ð±Ð¸Ñ€Ð°Ñ‚ÑŒ Ð¼Ð¾Ð¶Ð½Ð¾ Ð¿Ð¾ÑÐ»Ðµ Ð¿ÐµÑ€Ð²Ð¾Ð¹ Ð¾Ñ‚ÐºÑ€Ñ‹Ñ‚Ð¾Ð¹ Ð·Ð²ÐµÐ·Ð´Ñ‹.</p>
+          <p class="panel-note">Максимальный выигрыш — ×250 от ставки. Забирать можно после первой открытой звезды.</p>
         </div>
       </section>
 
-      <!-- ÐšÐ ÐÐ¨ -->
+      <!-- КРАШ -->
       <section class="view" id="view-crash" data-view="crash">
         <div class="game-head">
           <div>
-            <span class="kicker">ÐœÐ½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ</span>
-            <h1>ÐšÑ€Ð°Ñˆ</h1>
-            <p>ÐœÐ½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ Ñ€Ð°ÑÑ‚Ñ‘Ñ‚. Ð—Ð°Ð±ÐµÑ€Ð¸ Ð´Ð¾ Ñ‚Ð¾Ð³Ð¾, ÐºÐ°Ðº ÑÐ»ÑƒÑ‡Ð¸Ñ‚ÑÑ ÐºÑ€Ð°Ñˆ.</p>
+            <span class="kicker">Множитель</span>
+            <h1>Краш</h1>
+            <p>Множитель растёт. Забери до того, как случится краш.</p>
           </div>
         </div>
 
         <div class="panel crash-panel">
           <div class="crash-stage">
-            <span class="crash-label"><i></i> Ð ÐÐ£ÐÐ”</span>
-            <strong class="crash-multiplier" id="crashMultiplier">1.00Ã—</strong>
-            <span class="crash-status" id="crashStatus">Ð“Ð¾Ñ‚Ð¾Ð² Ðº Ð·Ð°Ð¿ÑƒÑÐºÑƒ</span>
-            <canvas id="crashCanvas" width="600" height="220" aria-label="Ð“Ñ€Ð°Ñ„Ð¸Ðº Ð¼Ð½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»Ñ"></canvas>
+            <span class="crash-label"><i></i> РАУНД</span>
+            <strong class="crash-multiplier" id="crashMultiplier">1.00×</strong>
+            <span class="crash-status" id="crashStatus">Готов к запуску</span>
+            <canvas id="crashCanvas" width="600" height="220" aria-label="График множителя"></canvas>
           </div>
-          <div class="crash-history" id="crashHistory"><i>â€”</i></div>
+          <div class="crash-history" id="crashHistory"><i>—</i></div>
           <div class="stepper-row">
             <div class="stepper">
-              <button type="button" id="crashBetDown" aria-label="Ð£Ð¼ÐµÐ½ÑŒÑˆÐ¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">âˆ’</button>
-              <div><span>Ð¡Ñ‚Ð°Ð²ÐºÐ°</span><strong><span id="crashBet">50</span> â˜…</strong></div>
-              <button type="button" id="crashBetUp" aria-label="Ð£Ð²ÐµÐ»Ð¸Ñ‡Ð¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">+</button>
+              <button type="button" id="crashBetDown" aria-label="Уменьшить ставку">−</button>
+              <div><span>Ставка</span><strong><span id="crashBet">50</span> ★</strong></div>
+              <button type="button" id="crashBetUp" aria-label="Увеличить ставку">+</button>
             </div>
-            <button class="btn btn-primary" id="crashAction" type="button">ÐÐ°Ñ‡Ð°Ñ‚ÑŒ</button>
+            <button class="btn btn-primary" id="crashAction" type="button">Начать</button>
           </div>
-          <div class="bet-tools bet-tools-wide" role="group" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ ÑÑ‚Ð°Ð²ÐºÐ¸">
-            <button type="button" id="crashBetHalf">Â½</button>
-            <button type="button" id="crashBetDouble">Ã—2</button>
+          <div class="bet-tools bet-tools-wide" role="group" aria-label="Быстрое изменение ставки">
+            <button type="button" id="crashBetHalf">½</button>
+            <button type="button" id="crashBetDouble">×2</button>
             <button type="button" id="crashBetMax">MAX</button>
           </div>
-          <p class="panel-note">ÐšÑ€Ð°Ñˆ Ð¼Ð¾Ð¶ÐµÑ‚ ÑÐ»ÑƒÑ‡Ð¸Ñ‚ÑŒÑÑ ÑÑ€Ð°Ð·Ñƒ. ÐŸÑ€Ð¸ ÑÐ²Ð¾Ñ€Ð°Ñ‡Ð¸Ð²Ð°Ð½Ð¸Ð¸ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ Ñ€Ð°ÑƒÐ½Ð´ Ð·Ð°ÐºÑ€Ñ‹Ð²Ð°ÐµÑ‚ÑÑ Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸.</p>
+          <p class="panel-note">Краш может случиться сразу. При сворачивании приложения раунд закрывается автоматически.</p>
         </div>
       </section>
 
-      <!-- ÐÐŸÐ“Ð Ð•Ð™Ð” -->
+      <!-- АПГРЕЙД -->
       <section class="view" id="view-upgrader" data-view="upgrader">
         <div class="game-head">
           <div>
-            <span class="kicker">Ð¨Ð°Ð½Ñ</span>
-            <h1>ÐÐ¿Ð³Ñ€ÐµÐ¹Ð´</h1>
-            <p>Ð’Ñ‹Ð±ÐµÑ€Ð¸ Ð¼Ð½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ, Ñ€Ð¸ÑÐºÐ½Ð¸ ÑÑ‚Ð°Ð²ÐºÐ¾Ð¹ Ð¸ Ð·Ð°Ð±ÐµÑ€Ð¸ Ð²Ñ‹Ð¿Ð»Ð°Ñ‚Ñƒ.</p>
+            <span class="kicker">Шанс</span>
+            <h1>Апгрейд</h1>
+            <p>Выбери множитель, рискни ставкой и забери выплату.</p>
           </div>
         </div>
 
         <div class="bet-console">
           <div class="stepper">
-            <button type="button" id="upBetDown" aria-label="Ð£Ð¼ÐµÐ½ÑŒÑˆÐ¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">âˆ’</button>
-            <div><span>Ð¡Ñ‚Ð°Ð²ÐºÐ°</span><strong><span id="upBet">50</span> â˜…</strong></div>
-            <button type="button" id="upBetUp" aria-label="Ð£Ð²ÐµÐ»Ð¸Ñ‡Ð¸Ñ‚ÑŒ ÑÑ‚Ð°Ð²ÐºÑƒ">+</button>
+            <button type="button" id="upBetDown" aria-label="Уменьшить ставку">−</button>
+            <div><span>Ставка</span><strong><span id="upBet">50</span> ★</strong></div>
+            <button type="button" id="upBetUp" aria-label="Увеличить ставку">+</button>
           </div>
-          <div class="bet-tools bet-tools-inline" role="group" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ð¾Ðµ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð¸Ðµ ÑÑ‚Ð°Ð²ÐºÐ¸">
-            <button type="button" id="upBetHalf">Â½</button>
-            <button type="button" id="upBetDouble">Ã—2</button>
+          <div class="bet-tools bet-tools-inline" role="group" aria-label="Быстрое изменение ставки">
+            <button type="button" id="upBetHalf">½</button>
+            <button type="button" id="upBetDouble">×2</button>
             <button type="button" id="upBetMax">MAX</button>
           </div>
         </div>
 
         <div class="panel up-panel">
-          <div class="up-wheel" id="upWheel" role="img" aria-label="ÐšÐ¾Ð»ÐµÑÐ¾ Ð°Ð¿Ð³Ñ€ÐµÐ¹Ð´Ð°">
+          <div class="up-wheel" id="upWheel" role="img" aria-label="Колесо апгрейда">
             <span class="up-marker" id="upMarker" aria-hidden="true"></span>
             <div class="up-wheel-core">
-              <span class="up-emoji" aria-hidden="true">ðŸ’¨</span>
+              <span class="up-emoji" aria-hidden="true">💨</span>
               <strong id="upWheelChance">46.5%</strong>
-              <small>ÑˆÐ°Ð½Ñ</small>
+              <small>шанс</small>
             </div>
           </div>
-          <div class="up-result" id="upResult" aria-live="polite">Ð’Ñ‹Ð±ÐµÑ€Ð¸Ñ‚Ðµ Ð¼Ð½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ</div>
+          <div class="up-result" id="upResult" aria-live="polite">Выберите множитель</div>
 
           <div class="up-targets" id="upTargets">
-            <button type="button" data-up-target="1.5"><span class="up-item">ðŸŽ</span><strong>Ã—1.5</strong></button>
-            <button type="button" data-up-target="2" class="is-active"><span class="up-item">ðŸŒ¹</span><strong>Ã—2</strong></button>
-            <button type="button" data-up-target="3"><span class="up-item">ðŸŽ‚</span><strong>Ã—3</strong></button>
-            <button type="button" data-up-target="5"><span class="up-item">ðŸ†</span><strong>Ã—5</strong></button>
-            <button type="button" data-up-target="10"><span class="up-item">ðŸ’Ž</span><strong>Ã—10</strong></button>
+            <button type="button" data-up-target="1.5"><span class="up-item">🎁</span><strong>×1.5</strong></button>
+            <button type="button" data-up-target="2" class="is-active"><span class="up-item">🌹</span><strong>×2</strong></button>
+            <button type="button" data-up-target="3"><span class="up-item">🎂</span><strong>×3</strong></button>
+            <button type="button" data-up-target="5"><span class="up-item">🏆</span><strong>×5</strong></button>
+            <button type="button" data-up-target="10"><span class="up-item">💎</span><strong>×10</strong></button>
           </div>
 
           <div class="up-head">
-            <div><span>Ð¨Ð°Ð½Ñ</span><strong id="upChance">46.5%</strong></div>
-            <div><span>ÐœÐ½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ</span><strong id="upTarget">Ã—2.00</strong></div>
-            <div><span>Ð’Ñ‹Ð¸Ð³Ñ€Ñ‹Ñˆ</span><strong id="upPayout">100 â˜…</strong></div>
+            <div><span>Шанс</span><strong id="upChance">46.5%</strong></div>
+            <div><span>Множитель</span><strong id="upTarget">×2.00</strong></div>
+            <div><span>Выигрыш</span><strong id="upPayout">100 ★</strong></div>
           </div>
 
-          <button class="btn btn-primary up-action" id="upAction" type="button">ÐÐ¿Ð³Ñ€ÐµÐ¹Ð´</button>
-          <p class="panel-note">Ð¨Ð°Ð½Ñ = 93% Ã· Ð¼Ð½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ. Ð§ÐµÐ¼ Ð²Ñ‹ÑˆÐµ Ð¼Ð½Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒ, Ñ‚ÐµÐ¼ Ð½Ð¸Ð¶Ðµ ÑˆÐ°Ð½Ñ.</p>
+          <button class="btn btn-primary up-action" id="upAction" type="button">Апгрейд</button>
+          <p class="panel-note">Шанс = 93% ÷ множитель. Чем выше множитель, тем ниже шанс.</p>
         </div>
       </section>
 
-      <!-- Ð˜Ð¡Ð¢ÐžÐ Ð˜Ð¯ -->
+      <!-- ИСТОРИЯ -->
       <section class="view" id="view-history" data-view="history">
         <div class="game-head">
           <div>
-            <span class="kicker">ÐŸÑ€Ð¾Ð³Ñ€ÐµÑÑ</span>
-            <h1>Ð˜ÑÑ‚Ð¾Ñ€Ð¸Ñ</h1>
-            <p>Ð Ð°ÑƒÐ½Ð´Ñ‹ Ð¸ Ð¿Ð¾Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ñ ÑÐ¾Ñ…Ñ€Ð°Ð½ÑÑŽÑ‚ÑÑ Ð½Ð° ÑÑ‚Ð¾Ð¼ ÑƒÑÑ‚Ñ€Ð¾Ð¹ÑÑ‚Ð²Ðµ.</p>
+            <span class="kicker">Прогресс</span>
+            <h1>История</h1>
+            <p>Раунды и пополнения сохраняются на этом устройстве.</p>
           </div>
         </div>
 
         <article class="panel history-panel">
           <div class="panel-head">
-            <h2>Ð’ÑÐµ Ñ€Ð°ÑƒÐ½Ð´Ñ‹</h2>
-            <span class="small-pill" id="historyCount">0 Ð·Ð°Ð¿Ð¸ÑÐµÐ¹</span>
+            <h2>Все раунды</h2>
+            <span class="small-pill" id="historyCount">0 записей</span>
           </div>
           <div class="history-list" id="historyList"></div>
         </article>
 
         <article class="panel history-panel">
           <div class="panel-head">
-            <h2>ÐŸÐ¾Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ñ</h2>
+            <h2>Пополнения</h2>
             <span class="small-pill" id="purchaseHistoryCount">0</span>
           </div>
           <div class="history-list" id="purchaseHistoryList"></div>
@@ -515,7 +515,7 @@
 
         <article class="panel history-panel">
           <div class="panel-head">
-            <h2>Ð—Ð°ÑÐ²ÐºÐ¸ Ð½Ð° Ð²Ñ‹Ð²Ð¾Ð´</h2>
+            <h2>Заявки на вывод</h2>
             <span class="small-pill" id="withdrawHistoryCount">0</span>
           </div>
           <div class="history-list" id="withdrawHistoryList"></div>
@@ -523,109 +523,109 @@
 
         <div class="danger-zone">
           <div>
-            <strong>Ð¡Ð±Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑ</strong>
-            <p>Ð‘Ð°Ð»Ð°Ð½Ñ Ð²ÐµÑ€Ð½Ñ‘Ñ‚ÑÑ Ðº 50 Ð·Ð²Ñ‘Ð·Ð´Ð°Ð¼, Ð¸ÑÑ‚Ð¾Ñ€Ð¸Ñ Ð¾Ñ‡Ð¸ÑÑ‚Ð¸Ñ‚ÑÑ.</p>
+            <strong>Сбросить прогресс</strong>
+            <p>Баланс вернётся к 50 звёздам, история очистится.</p>
           </div>
           <button class="btn btn-danger" type="button" id="openResetBtn2">
             <svg class="icon"><use href="#i-reset"></use></svg>
-            Ð¡Ð±Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ
+            Сбросить
           </button>
         </div>
 
         <footer class="app-footer">
-          <span>KAZ Â· 6 Ð¸Ð³Ñ€</span>
-          <span>Ð•Ð¶ÐµÐ´Ð½ÐµÐ²Ð½Ñ‹Ð¹ Ð±Ð¾Ð½ÑƒÑ Â· 10 â˜…</span>
+          <span>KAZ · 6 игр</span>
+          <span>Ежедневный бонус · 10 ★</span>
         </footer>
       </section>
     </main>
 
-    <nav class="tabbar" aria-label="ÐÐ°Ð²Ð¸Ð³Ð°Ñ†Ð¸Ñ">
+    <nav class="tabbar" aria-label="Навигация">
       <button type="button" class="tab" data-nav="lobby">
         <svg class="icon"><use href="#i-slots"></use></svg>
-        <span>Ð˜Ð³Ñ€Ñ‹</span>
+        <span>Игры</span>
       </button>
       <button type="button" class="tab" data-action="daily">
         <svg class="icon"><use href="#i-spark"></use></svg>
-        <span>Ð‘Ð¾Ð½ÑƒÑ</span>
+        <span>Бонус</span>
       </button>
       <button type="button" class="tab" data-nav="history">
         <svg class="icon"><use href="#i-history"></use></svg>
-        <span>Ð˜ÑÑ‚Ð¾Ñ€Ð¸Ñ</span>
+        <span>История</span>
       </button>
     </nav>
   </div>
 
-  <!-- ÐœÐžÐ”ÐÐ›Ð¬ÐÐ«Ð• ÐžÐšÐÐ -->
+  <!-- МОДАЛЬНЫЕ ОКНА -->
   <div class="modal" id="modalBonus" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="bonusModalTitle">
     <div class="modal-backdrop" data-close-modal></div>
     <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal aria-label="Ð—Ð°ÐºÑ€Ñ‹Ñ‚ÑŒ"><svg class="icon"><use href="#i-close"></use></svg></button>
+      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
       <span class="modal-star"><svg class="icon"><use href="#i-star"></use></svg></span>
-      <span class="modal-kicker">Ð•Ð¶ÐµÐ´Ð½ÐµÐ²Ð½Ñ‹Ð¹ Ð¿Ð¾Ð´Ð°Ñ€Ð¾Ðº</span>
-      <h2 id="bonusModalTitle">+10 Ð·Ð²Ñ‘Ð·Ð´</h2>
-      <p>Ð—Ð°Ñ…Ð¾Ð´Ð¸ ÐºÐ°Ð¶Ð´Ñ‹Ð¹ Ð´ÐµÐ½ÑŒ Ð¸ Ð·Ð°Ð±Ð¸Ñ€Ð°Ð¹ Ð±Ð¾Ð½ÑƒÑ. Ð‘ÐµÐ· ÑƒÑÐ»Ð¾Ð²Ð¸Ð¹ Ð¸ Ð¾Ñ‚Ñ‹Ð³Ñ€Ñ‹ÑˆÐ°.</p>
-      <button class="btn btn-primary modal-main-btn" id="claimBonusBtn" type="button">Ð—Ð°Ð±Ñ€Ð°Ñ‚ÑŒ Ð±Ð¾Ð½ÑƒÑ</button>
-      <span class="modal-footnote" id="bonusFootnote">Ð”Ð¾ÑÑ‚ÑƒÐ¿Ð½Ð¾ ÑÐµÐ³Ð¾Ð´Ð½Ñ</span>
+      <span class="modal-kicker">Ежедневный подарок</span>
+      <h2 id="bonusModalTitle">+10 звёзд</h2>
+      <p>Заходи каждый день и забирай бонус. Без условий и отыгрыша.</p>
+      <button class="btn btn-primary modal-main-btn" id="claimBonusBtn" type="button">Забрать бонус</button>
+      <span class="modal-footnote" id="bonusFootnote">Доступно сегодня</span>
     </div>
   </div>
 
   <div class="modal" id="modalTopup" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="topupModalTitle">
     <div class="modal-backdrop" data-close-modal></div>
     <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal aria-label="Ð—Ð°ÐºÑ€Ñ‹Ñ‚ÑŒ"><svg class="icon"><use href="#i-close"></use></svg></button>
-      <span class="modal-kicker">ÐŸÐ¾Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ðµ</span>
-      <h2 id="topupModalTitle">ÐŸÐ¾Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð±Ð°Ð»Ð°Ð½Ñ</h2>
-      <p>Ð’Ð²ÐµÐ´Ð¸Ñ‚Ðµ ÑÑƒÐ¼Ð¼Ñƒ. Ð¡Ñ‡Ñ‘Ñ‚ Ð¿Ñ€Ð¸Ð´Ñ‘Ñ‚ Ð² Ñ‡Ð°Ñ‚ Ñ Ð±Ð¾Ñ‚Ð¾Ð¼ â€” Ð¾Ð¿Ð»Ð°Ñ‚Ð° Ð¿Ñ€Ð¾Ñ…Ð¾Ð´Ð¸Ñ‚ Ñ‡ÐµÑ€ÐµÐ· Telegram Stars.</p>
+      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
+      <span class="modal-kicker">Пополнение</span>
+      <h2 id="topupModalTitle">Пополнить баланс</h2>
+      <p>Введите сумму. Счёт придёт в чат с ботом — оплата проходит через Telegram Stars.</p>
       <label class="form-field" for="topupAmount">
-        <span>Ð¡ÑƒÐ¼Ð¼Ð° Ð¿Ð¾Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ñ</span>
+        <span>Сумма пополнения</span>
         <input id="topupAmount" type="number" min="1" max="1000000" step="1" inputmode="numeric" value="500" autocomplete="off">
       </label>
       <div class="topup-summary">
-        <span>Ðš Ð¾Ð¿Ð»Ð°Ñ‚Ðµ</span>
+        <span>К оплате</span>
         <strong id="topupPrice">500</strong>
         <small>Telegram Stars</small>
       </div>
-      <span class="modal-footnote topup-rate">1 â˜… = 1 Telegram Star Â· Ð¼Ð¸Ð½Ð¸Ð¼ÑƒÐ¼ 1 â˜…</span>
-      <button class="btn btn-primary modal-main-btn" id="topupSubmitBtn" type="button">ÐŸÐ¾Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð·Ð° Stars</button>
-      <span class="modal-footnote" id="topupFootnote">ÐŸÐ¾ÑÐ»Ðµ Ð¾Ð¿Ð»Ð°Ñ‚Ñ‹ Ð²ÐµÑ€Ð½Ð¸Ñ‚ÐµÑÑŒ Ð² KAZ â€” Ð±Ð°Ð»Ð°Ð½Ñ Ð¾Ð±Ð½Ð¾Ð²Ð¸Ñ‚ÑÑ</span>
-      <button class="topup-check-btn" id="topupChatBtn" type="button">ÐžÑ‚ÐºÑ€Ñ‹Ñ‚ÑŒ ÑÑ‡Ñ‘Ñ‚ Ð² Ñ‡Ð°Ñ‚Ðµ</button>
-      <button class="topup-check-btn" id="topupCheckBtn" type="button">Ð£Ð¶Ðµ Ð¾Ð¿Ð»Ð°Ñ‚Ð¸Ð» Â· Ð¿Ñ€Ð¾Ð²ÐµÑ€Ð¸Ñ‚ÑŒ</button>
+      <span class="modal-footnote topup-rate">1 ★ = 1 Telegram Star · минимум 1 ★</span>
+      <button class="btn btn-primary modal-main-btn" id="topupSubmitBtn" type="button">Пополнить за Stars</button>
+      <span class="modal-footnote" id="topupFootnote">После оплаты вернитесь в KAZ — баланс обновится</span>
+      <button class="topup-check-btn" id="topupChatBtn" type="button">Открыть счёт в чате</button>
+      <button class="topup-check-btn" id="topupCheckBtn" type="button">Уже оплатил · проверить</button>
       <div class="modal-divider"></div>
       <button class="btn btn-ghost modal-main-btn" id="openWithdrawBtn" type="button" data-action="withdraw">
         <svg class="icon"><use href="#i-arrow"></use></svg>
-        Ð’Ñ‹Ð²Ð¾Ð´ Ð·Ð²Ñ‘Ð·Ð´
+        Вывод звёзд
       </button>
-      <span class="modal-footnote">Ð—Ð°ÑÐ²ÐºÐ° Ð¾Ñ‚ 500 â˜… Â· Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ Ð¿Ñ€Ð¸Ð½Ð¸Ð¼Ð°ÐµÑ‚ Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€</span>
+      <span class="modal-footnote">Заявка от 500 ★ · решение принимает администратор</span>
     </div>
   </div>
 
   <div class="modal" id="modalWithdraw" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="withdrawModalTitle">
     <div class="modal-backdrop" data-close-modal></div>
     <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal aria-label="Ð—Ð°ÐºÑ€Ñ‹Ñ‚ÑŒ"><svg class="icon"><use href="#i-close"></use></svg></button>
+      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
       <span class="modal-star"><svg class="icon"><use href="#i-arrow"></use></svg></span>
-      <span class="modal-kicker">Ð—Ð°ÑÐ²ÐºÐ°</span>
-      <h2 id="withdrawModalTitle">Ð’Ñ‹Ð²Ð¾Ð´ Ð·Ð²Ñ‘Ð·Ð´</h2>
-      <p>Ð£ÐºÐ°Ð¶Ð¸Ñ‚Ðµ ÑÑƒÐ¼Ð¼Ñƒ â€” ÐºÐ¾Ð½Ñ‚Ð°ÐºÑ‚ Ð´Ð»Ñ ÑÐ²ÑÐ·Ð¸ Ð²Ð¾Ð·ÑŒÐ¼Ñ‘Ð¼ Ð¸Ð· ShuzaGram.</p>
+      <span class="modal-kicker">Заявка</span>
+      <h2 id="withdrawModalTitle">Вывод звёзд</h2>
+      <p>Укажите сумму — контакт для связи возьмём из ShuzaGram.</p>
       <div class="withdraw-summary">
-        <span>Ð”Ð¾ÑÑ‚ÑƒÐ¿Ð½Ð¾</span>
+        <span>Доступно</span>
         <strong data-bind="balance">50</strong>
-        <small>â˜…</small>
+        <small>★</small>
       </div>
       <div class="withdraw-user" id="withdrawUser">
-        <span>ÐšÐ¾Ð½Ñ‚Ð°ÐºÑ‚ Ð¸Ð· ShuzaGram</span>
-        <strong id="withdrawUserLabel">ÐžÐ¿Ñ€ÐµÐ´ÐµÐ»Ð¸Ñ‚ÑÑ Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸</strong>
+        <span>Контакт из ShuzaGram</span>
+        <strong id="withdrawUserLabel">Определится автоматически</strong>
       </div>
       <label class="form-field" for="withdrawAmount">
-        <span>Ð¡ÑƒÐ¼Ð¼Ð° Ð²Ñ‹Ð²Ð¾Ð´Ð°</span>
+        <span>Сумма вывода</span>
         <input id="withdrawAmount" type="number" min="500" step="1" inputmode="numeric" placeholder="500" autocomplete="off">
       </label>
-      <div class="bet-tools withdraw-quick" role="group" aria-label="Ð‘Ñ‹ÑÑ‚Ñ€Ñ‹Ð¹ Ð²Ñ‹Ð±Ð¾Ñ€ ÑÑƒÐ¼Ð¼Ñ‹">
-        <button type="button" data-withdraw-quick="half">Â½</button>
+      <div class="bet-tools withdraw-quick" role="group" aria-label="Быстрый выбор суммы">
+        <button type="button" data-withdraw-quick="half">½</button>
         <button type="button" data-withdraw-quick="max">MAX</button>
       </div>
-      <button class="btn btn-primary modal-main-btn" id="withdrawSubmitBtn" type="button">ÐžÑ‚Ð¿Ñ€Ð°Ð²Ð¸Ñ‚ÑŒ Ð·Ð°ÑÐ²ÐºÑƒ</button>
-      <span class="modal-footnote" id="withdrawFootnote">ÐœÐ¸Ð½Ð¸Ð¼ÑƒÐ¼ 500 â˜… Â· Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ Ð¿Ñ€Ð¸Ð½Ð¸Ð¼Ð°ÐµÑ‚ Ð°Ð´Ð¼Ð¸Ð½Ð¸ÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€</span>
+      <button class="btn btn-primary modal-main-btn" id="withdrawSubmitBtn" type="button">Отправить заявку</button>
+      <span class="modal-footnote" id="withdrawFootnote">Минимум 500 ★ · решение принимает администратор</span>
       <div class="withdraw-result" id="withdrawResult" hidden></div>
     </div>
   </div>
@@ -633,13 +633,13 @@
   <div class="modal" id="modalReset" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
     <div class="modal-backdrop" data-close-modal></div>
     <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal aria-label="Ð—Ð°ÐºÑ€Ñ‹Ñ‚ÑŒ"><svg class="icon"><use href="#i-close"></use></svg></button>
+      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
       <span class="modal-star danger"><svg class="icon"><use href="#i-reset"></use></svg></span>
-      <h2 id="resetModalTitle">Ð¡Ð±Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑ?</h2>
-      <p>Ð‘Ð°Ð»Ð°Ð½Ñ Ð²ÐµÑ€Ð½Ñ‘Ñ‚ÑÑ Ðº 50 Ð·Ð²Ñ‘Ð·Ð´Ð°Ð¼, Ð¸ÑÑ‚Ð¾Ñ€Ð¸Ñ Ð¸ ÑÑ‚Ð°Ñ‚Ð¸ÑÑ‚Ð¸ÐºÐ° Ð±ÑƒÐ´ÑƒÑ‚ ÑƒÐ´Ð°Ð»ÐµÐ½Ñ‹. Ð­Ñ‚Ð¾ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ðµ Ð½ÐµÐ»ÑŒÐ·Ñ Ð¾Ñ‚Ð¼ÐµÐ½Ð¸Ñ‚ÑŒ.</p>
+      <h2 id="resetModalTitle">Сбросить прогресс?</h2>
+      <p>Баланс вернётся к 50 звёздам, история и статистика будут удалены. Это действие нельзя отменить.</p>
       <div class="modal-actions">
-        <button class="btn btn-ghost" type="button" data-close-modal>ÐžÑ‚Ð¼ÐµÐ½Ð°</button>
-        <button class="btn btn-danger" type="button" id="confirmResetBtn">Ð¡Ð±Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ</button>
+        <button class="btn btn-ghost" type="button" data-close-modal>Отмена</button>
+        <button class="btn btn-danger" type="button" id="confirmResetBtn">Сбросить</button>
       </div>
     </div>
   </div>
@@ -647,12 +647,12 @@
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
   <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
-  <script src="js/core.js?v=14"></script>
-  <script src="js/slots.js?v=14"></script>
-  <script src="js/blackjack.js?v=14"></script>
-  <script src="js/roulette.js?v=14"></script>
-  <script src="js/mines.js?v=14"></script>
-  <script src="js/crash.js?v=14"></script>
-  <script src="js/upgrader.js?v=14"></script>
+  <script src="js/core.js?v=15"></script>
+  <script src="js/slots.js?v=15"></script>
+  <script src="js/blackjack.js?v=15"></script>
+  <script src="js/roulette.js?v=15"></script>
+  <script src="js/mines.js?v=15"></script>
+  <script src="js/crash.js?v=15"></script>
+  <script src="js/upgrader.js?v=15"></script>
 </body>
 </html>

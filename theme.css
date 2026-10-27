@@ -780,151 +780,151 @@ textarea:focus { border-color: rgba(192, 132, 252, 0.55); }
    Muted graphite / plum surfaces, no neon and no glow.
    ========================================================= */
 :root {
-  --bg: #0a090d;
-  --bg-soft: #0e0c11;
-  --panel: #141118;
-  --panel-2: #17141b;
-  --panel-3: #100e13;
+  --bg: #0b0611;
+  --bg-soft: #120a1b;
+  --panel: #1b1127;
+  --panel-2: #241631;
+  --panel-3: #150d20;
   --line: rgba(255, 255, 255, 0.07);
   --line-strong: rgba(255, 255, 255, 0.12);
-  --text: #f2eef5;
-  --muted: #b3a8bd;
-  --muted-2: #817787;
-  --lime: #b3a6c2;
-  --green: #7fae9e;
-  --gold: #cdb17b;
-  --red: #c48190;
-  --blue: #8da3ba;
-  --purple: #b6a8c3;
-  --orange: #bd9a80;
-  --teal: #8ab4aa;
-  --accent: #6c5f7a;
-  --accent-2: #806b7c;
+  --text: #f5eef9;
+  --muted: #c0adcf;
+  --muted-2: #8e7b9f;
+  --lime: #c0a3df;
+  --green: #79b49f;
+  --gold: #d9b874;
+  --red: #c77e8f;
+  --blue: #8fa7c9;
+  --purple: #c3a5df;
+  --orange: #c49a78;
+  --teal: #86bbae;
+  --accent: #6f4a8e;
+  --accent-2: #8a5a83;
 }
 
-html, body { background: #0a090d; }
+html, body { background: #0b0611; }
 .ambient { display: none; }
-::selection { background: rgba(179, 166, 194, 0.25); }
-:focus-visible { outline-color: #9b8daa; }
+::selection { background: rgba(195, 165, 223, 0.25); }
+:focus-visible { outline-color: #a78abc; }
 
 .app {
-  background: linear-gradient(180deg, #100e13 0%, #0d0b10 48%, #0a090d 100%);
+  background: linear-gradient(180deg, #150d20 0%, #0f0918 48%, #0b0611 100%);
 }
 
 .appbar {
-  background: rgba(14, 12, 17, 0.97);
-  border-bottom-color: #211e25;
+  background: rgba(18, 10, 27, 0.97);
+  border-bottom-color: #271a34;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 .brand-mark {
-  color: #cdb17b;
-  background: #1b1720;
-  border: 1px solid #3a333e;
+  color: #d9b874;
+  background: #24162f;
+  border: 1px solid #3e2b4e;
   box-shadow: none;
 }
-.brand-text strong { color: #f2eef5; }
-.brand-text small { color: #8f8599; }
+.brand-text strong { color: #f5eef9; }
+.brand-text small { color: #9782a8; }
 .balance-pill {
-  background: #131017;
-  border-color: #3b333a;
+  background: #1a1024;
+  border-color: #40304f;
   box-shadow: none;
 }
-.balance-pill strong { color: #dfcba2; }
-.balance-pill .star-icon { color: #cdb17b; }
-.balance-plus { background: #211d24; color: #cdb17b; }
-.icon-btn { background: #17141b; border-color: #29252e; color: #a89bb9; }
+.balance-pill strong { color: #e3cfa4; }
+.balance-pill .star-icon { color: #d9b874; }
+.balance-plus { background: #2a1c36; color: #d9b874; }
+.icon-btn { background: #241631; border-color: #2d203a; color: #b9a5c8; }
 
 .game-rail {
-  background: #0d0b10;
-  border-bottom: 1px solid #201d24;
+  background: #0f0918;
+  border-bottom: 1px solid #261a33;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 .game-chip {
-  background: #151219;
-  border-color: #29252e;
-  color: #a89bb9;
+  background: #1b1126;
+  border-color: #2d203a;
+  color: #b9a5c8;
 }
 .game-chip.active {
-  background: #28232e;
-  border-color: #4d4555;
-  color: #f1ebf4;
+  background: #3a2651;
+  border-color: #5b3f76;
+  color: #f5eff8;
   box-shadow: none;
 }
 
 .hero {
-  border-color: #2b2630;
-  background: #141118;
+  border-color: #322344;
+  background: #1b1127;
   box-shadow: none;
 }
 .badge {
-  border-color: #39333f;
-  background: #1b1720;
-  color: #b7a7c1;
+  border-color: #463259;
+  background: #24162f;
+  color: #cbb3de;
 }
-.badge i { background: #b7a7c1; box-shadow: none; animation: none; }
-.hero h1 { color: #f2eef5; }
-.hero h1 em { color: #c2b0cb; text-shadow: none; }
-.hero p { color: #a89bb9; }
+.badge i { background: #cbb3de; box-shadow: none; animation: none; }
+.hero h1 { color: #f5eef9; }
+.hero h1 em { color: #cda7e6; text-shadow: none; }
+.hero p { color: #b9a5c8; }
 .hero-star { opacity: 0.08; }
 .hero-star-b { opacity: 0.12; }
 .withdraw-entry {
-  background: #141118;
-  border-color: #2b2630;
+  background: #1b1127;
+  border-color: #322344;
 }
-.withdraw-entry-icon { color: #cdb17b; background: #201b22; }
-.withdraw-entry-copy strong { color: #dfcba2; }
-.withdraw-entry-arrow { color: #8f8599; }
+.withdraw-entry-icon { color: #d9b874; background: #2a1c36; }
+.withdraw-entry-copy strong { color: #e3cfa4; }
+.withdraw-entry-arrow { color: #9782a8; }
 
 .btn-primary,
 .spin-btn,
 .up-action {
-  color: #f7f2f8;
-  background: #5f546c;
-  border: 1px solid #746684;
+  color: #f9f4fb;
+  background: #6c4a8d;
+  border: 1px solid #8664a4;
   box-shadow: none;
 }
 .btn-primary:active,
 .spin-btn:active,
-.up-action:active { background: #544a60; }
-.btn-ghost { background: #16131a; border-color: #2b2630; }
-.btn-soft, .text-btn { color: #c2b6cf; }
-.btn-soft { background: #1b1720; border-color: #332d39; }
+.up-action:active { background: #5a3b78; }
+.btn-ghost { background: #1c1228; border-color: #322344; }
+.btn-soft, .text-btn { color: #cdb6df; }
+.btn-soft { background: #24162f; border-color: #3a2849; }
 
 .topup-strip {
-  background: #141118;
-  border-color: #332d36;
+  background: #1b1127;
+  border-color: #362646;
 }
-.topup-strip-balance strong { color: #e4d5b4; }
-.section-head > a { color: #c2b6cf; }
+.topup-strip-balance strong { color: #e7d6b6; }
+.section-head > a { color: #cdb6df; }
 .game-card {
-  background: #151219;
-  border-color: #29252e;
+  background: #1b1126;
+  border-color: #2d203a;
   box-shadow: none;
 }
-.game-card:active { background: #1a161e; border-color: #3f3847; }
+.game-card:active { background: #241630; border-color: #4a3560; }
 .game-card .game-icon.green,
-.game-icon.green { color: #a89bb9; background: #201b24; }
-.game-icon.purple { color: #b6a8c3; background: #201b24; }
-.game-icon.teal { color: #8ab4aa; background: #1b2320; }
-.game-icon.orange { color: #bd9a80; background: #231d1a; }
-.game-icon.blue { color: #8da3ba; background: #1a1f25; }
-.game-icon.red { color: #c48190; background: #231a1e; }
-.daily-card { background: #141118; border-color: #332d36; }
-.daily-icon { color: #cdb17b; background: #201b22; }
-.daily-arrow { color: #cdb17b; }
-.recent-item { background: #151219; border-color: #29252e; }
+.game-icon.green { color: #b9a5c8; background: #2a1a38; }
+.game-icon.purple { color: #c3a5df; background: #2a1a38; }
+.game-icon.teal { color: #86bbae; background: #1b2320; }
+.game-icon.orange { color: #c49a78; background: #231d1a; }
+.game-icon.blue { color: #8fa7c9; background: #1a1f25; }
+.game-icon.red { color: #c77e8f; background: #231a1e; }
+.daily-card { background: #1b1127; border-color: #362646; }
+.daily-icon { color: #d9b874; background: #2a1c36; }
+.daily-arrow { color: #d9b874; }
+.recent-item { background: #1b1126; border-color: #2d203a; }
 
 .panel {
-  background: #141118;
-  border-color: #29252e;
+  background: #1b1127;
+  border-color: #2d203a;
   box-shadow: none;
 }
-.details-panel, .history-panel { border-color: #29252e; }
+.details-panel, .history-panel { border-color: #2d203a; }
 .paytable > div, .topup-summary, .withdraw-summary, .withdraw-result {
-  background: #100e13;
-  border-color: #29252e;
+  background: #150d20;
+  border-color: #2d203a;
 }
 
 .slot-machine,
@@ -934,60 +934,60 @@ html, body { background: #0a090d; }
 .mines-panel,
 .crash-panel,
 .up-panel {
-  background: #141118;
-  border-color: #2b2630;
+  background: #1b1127;
+  border-color: #322344;
   box-shadow: none;
 }
-.slot-marquee { background: #19151d; border-color: #2b2630; }
-.slot-stage { background: #100e13; border-color: #29252e; }
-.slot-cell { background: #19151d; border-color: #29252e; }
+.slot-marquee { background: #221630; border-color: #322344; }
+.slot-stage { background: #150d20; border-color: #2d203a; }
+.slot-cell { background: #221630; border-color: #2d203a; }
 .slot-cell.win {
-  background: #18231f;
-  border-color: #5c8a7d;
+  background: #182a24;
+  border-color: #558d7a;
   box-shadow: none;
 }
-.slot-win { background: #100e13; border-color: #29252e; }
-.hand-block { background: #100e13; border-color: #29252e; }
-.bj-status { background: #100e13; }
-.score-pill { background: #100e13; border-color: #29252e; }
-.wheel-card { background: #141118; }
-.wheel-hub strong { color: #c2b6cf; }
-.roulette-chip { background: #151219; border-color: #29252e; color: #a89bb9; }
-.roulette-chip.is-active { background: #24202a; border-color: #4d4555; color: #f1ebf4; }
-.roulette-numbers button { background: #19151d; border-color: #29252e; }
+.slot-win { background: #150d20; border-color: #2d203a; }
+.hand-block { background: #150d20; border-color: #2d203a; }
+.bj-status { background: #150d20; }
+.score-pill { background: #150d20; border-color: #2d203a; }
+.wheel-card { background: #1b1127; }
+.wheel-hub strong { color: #cdb6df; }
+.roulette-chip { background: #1b1126; border-color: #2d203a; color: #b9a5c8; }
+.roulette-chip.is-active { background: #312040; border-color: #5b3f76; color: #f5eff8; }
+.roulette-numbers button { background: #221630; border-color: #2d203a; }
 .roulette-numbers button.red { background: #3b252b; }
-.mines-top { background: #100e13; border-color: #29252e; }
-.mine-cell { background: #19151d; border-color: #29252e; }
-.mine-cell.safe { background: #18231f; border-color: #5c8a7d; box-shadow: none; }
-.crash-stage { background: #100e13; border-color: #29252e; }
+.mines-top { background: #150d20; border-color: #2d203a; }
+.mine-cell { background: #221630; border-color: #2d203a; }
+.mine-cell.safe { background: #182a24; border-color: #558d7a; box-shadow: none; }
+.crash-stage { background: #150d20; border-color: #2d203a; }
 .crash-stage.hot { background: #1e1b17; border-color: #5c5140; }
 .crash-stage.crashed { background: #22171b; border-color: #5c3b43; }
-.crash-history i { background: #19151d; border-color: #29252e; }
+.crash-history i { background: #221630; border-color: #2d203a; }
 
 .bet-console {
-  background: #141118;
-  border-color: #29252e;
+  background: #1b1127;
+  border-color: #2d203a;
   box-shadow: none;
 }
-.bet-console .stepper { background: #100e13; }
-.bet-tools-inline button { background: #17141b; border-color: #2b2630; }
+.bet-console .stepper { background: #150d20; }
+.bet-tools-inline button { background: #241631; border-color: #322344; }
 .up-panel {
-  background: #141118;
-  border-color: #2b2630;
+  background: #1b1127;
+  border-color: #322344;
   box-shadow: none;
 }
 .up-wheel {
   background: conic-gradient(
     from -90deg,
-    #7fae9e 0 calc(var(--chance) * 1%),
-    #29252e calc(var(--chance) * 1%) 100%
+    #79b49f 0 calc(var(--chance) * 1%),
+    #2d203a calc(var(--chance) * 1%) 100%
   );
-  box-shadow: inset 0 0 0 1px #343039;
+  box-shadow: inset 0 0 0 1px #3d2b4d;
 }
 .up-wheel::before { display: none; }
 .up-wheel-core {
-  background: #121016;
-  border-color: #2f2a34;
+  background: #160f20;
+  border-color: #3a2948;
   box-shadow: none;
 }
 .up-emoji { filter: none; animation: none; }
@@ -995,50 +995,50 @@ html, body { background: #0a090d; }
 .up-wheel.is-spinning .up-marker {
   transition: transform 1.05s cubic-bezier(0.12, 0.8, 0.2, 1);
 }
-.up-targets button { background: #17141b; border-color: #2b2630; color: #b3a8bd; }
+.up-targets button { background: #241631; border-color: #322344; color: #c0adcf; }
 .up-targets button.is-active {
   background: #242028;
-  border-color: #8d7c5f;
-  color: #dfcba2;
+  border-color: #927a59;
+  color: #e3cfa4;
   box-shadow: none;
 }
-.up-head > div:first-child strong { color: #7fae9e; }
-.up-head > div:nth-child(2) strong { color: #c2b6cf; }
-.up-head > div:nth-child(3) strong { color: #cdb17b; }
-.up-action { background: #5f546c; }
+.up-head > div:first-child strong { color: #79b49f; }
+.up-head > div:nth-child(2) strong { color: #cdb6df; }
+.up-head > div:nth-child(3) strong { color: #d9b874; }
+.up-action { background: #6c4a8d; }
 
 .tabbar {
-  background: rgba(13, 11, 16, 0.97);
-  border-top-color: #211e25;
+  background: rgba(15, 9, 24, 0.97);
+  border-top-color: #271a34;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: none;
 }
-.tab { color: #817787; }
+.tab { color: #8e7b9f; }
 .tab.active {
-  background: #221d27;
-  box-shadow: inset 0 0 0 1px #3a3442;
-  color: #f1ebf4;
+  background: #2f1d40;
+  box-shadow: inset 0 0 0 1px #4a3363;
+  color: #f5eff8;
 }
-.tab.active .icon { color: #c2b6cf; filter: none; }
+.tab.active .icon { color: #cdb6df; filter: none; }
 
 .modal-card {
-  background: #141118;
-  border-color: #2b2630;
+  background: #1b1127;
+  border-color: #322344;
   box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
 }
-.modal-close { background: #1b1720; }
-.modal-star { color: #cdb17b; border-color: #3a333e; background: #201b22; }
-.modal-kicker { color: #b3a6c2; }
-.topup-grid button { background: #19151d; border-color: #29252e; }
-.topup-grid .featured { background: #24202a; border-color: #4d4555; }
-.topup-grid b { color: #cdb17b; }
-.topup-check-btn { color: #c2b6cf; }
+.modal-close { background: #24162f; }
+.modal-star { color: #d9b874; border-color: #3e2b4e; background: #2a1c36; }
+.modal-kicker { color: #c0a3df; }
+.topup-grid button { background: #221630; border-color: #2d203a; }
+.topup-grid .featured { background: #312040; border-color: #5b3f76; }
+.topup-grid b { color: #d9b874; }
+.topup-check-btn { color: #cdb6df; }
 #topupChatBtn { margin-top: 8px; }
 #topupChatBtn + #topupCheckBtn { margin-top: 0; }
-.withdraw-status.credited { border-color: #5c8a7d; color: #7fae9e; }
-.toast { background: #1a161e; border-color: #2b2630; }
-.toast.info .toast-icon { color: #c2b6cf; background: #24202a; }
+.withdraw-status.credited { border-color: #558d7a; color: #79b49f; }
+.toast { background: #241630; border-color: #322344; }
+.toast.info .toast-icon { color: #cdb6df; background: #312040; }
 
 @media (prefers-reduced-motion: reduce) {
   .up-wheel.is-spinning .up-marker { transition-duration: 0.01ms; }
