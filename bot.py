@@ -201,7 +201,7 @@ WELCOME = (
     "<b>KAZ</b> — казино на виртуальные звёзды.\n\n"
     "На старте — <b>50 ★</b>, ежедневный бонус — <b>10 ★</b>.\n"
     "Слоты, блэкджек, рулетка, мины, краш и апгрейд.\n"
-    "Пополнение — за Telegram Stars, <b>1 ★ = 1 Star</b>.\n\n"
+    "Пополнение — за Telegram Stars, <b>1 ★ = 1 Star</b>."
 )
 
 HELP = (
@@ -633,6 +633,13 @@ def handle_update(update: dict) -> None:
     command = text.split()[0].split("@", 1)[0].lower()
     chat_type = chat.get("type", "private")
     if command in ("/start", "/play"):
+        start_parts = text.split(maxsplit=1)
+        if command == "/start" and len(start_parts) > 1:
+            start_payload = start_parts[1].strip()
+            if start_payload.startswith("topup_"):
+                log(f"[bot] start topup payload={start_payload} chat={chat_id}")
+                handle_topup_request(message, chat_id, {"amount": start_payload[6:]})
+                return
         send_message(chat_id, WELCOME, open_keyboard(chat_type))
     elif command == "/buy":
         handle_buy_command(chat_id, text)

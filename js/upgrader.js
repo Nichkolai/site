@@ -33,6 +33,7 @@
     betMax: null,
     target: null,
     chance: null,
+    wheelChance: null,
     payout: null,
     zone: null,
     marker: null,
@@ -57,8 +58,11 @@
     if (elements.bet) elements.bet.textContent = NP.formatStars(game.bet);
     if (elements.target) elements.target.textContent = `×${game.target.toFixed(2)}`;
     if (elements.chance) elements.chance.textContent = formatChance(chanceFor());
+    if (elements.wheelChance) elements.wheelChance.textContent = formatChance(chanceFor());
     if (elements.payout) elements.payout.textContent = `${NP.formatStars(payoutFor())} ★`;
-    if (elements.zone) elements.zone.style.width = `${chanceFor() * 100}%`;
+    if (elements.zone) {
+      elements.zone.style.setProperty("--chance", (chanceFor() * 100).toFixed(2));
+    }
 
     const balance = NP.getState().balance;
     if (elements.betDown) elements.betDown.disabled = game.busy || game.bet <= MIN_BET;
@@ -77,10 +81,14 @@
   }
 
   function resetResult(text = "Нажмите «Апгрейд»") {
+    if (elements.zone) elements.zone.classList.remove("is-spinning");
+    if (elements.marker) {
+      elements.marker.classList.remove("show");
+      elements.marker.style.setProperty("--marker-angle", "0deg");
+    }
     if (!elements.result) return;
     elements.result.textContent = text;
     elements.result.className = "up-result";
-    if (elements.marker) elements.marker.classList.remove("show");
   }
 
   function chooseTarget(value) {
@@ -168,11 +176,15 @@
       elements.result.className = "up-result";
     }
     if (elements.marker) {
+      const wheel = elements.zone;
+      if (wheel) wheel.classList.remove("is-spinning");
       elements.marker.classList.remove("show");
-      elements.marker.style.left = "0%";
+      elements.marker.style.setProperty("--marker-angle", "0deg");
       void elements.marker.offsetWidth;
-      elements.marker.style.left = `${markerRoll * 100}%`;
+      if (wheel) wheel.classList.add("is-spinning");
       elements.marker.classList.add("show");
+      // Two and a half turns before the pointer settles on the result.
+      elements.marker.style.setProperty("--marker-angle", `${900 + markerRoll * 360}deg`);
     }
 
     window.setTimeout(() => {
@@ -205,9 +217,10 @@
         wager: bet
       });
 
+      if (elements.zone) elements.zone.classList.remove("is-spinning");
       game.busy = false;
       updateUI();
-    }, 760);
+    }, 1100);
   }
 
   function init() {
@@ -219,8 +232,9 @@
     elements.betMax = document.getElementById("upBetMax");
     elements.target = document.getElementById("upTarget");
     elements.chance = document.getElementById("upChance");
+    elements.wheelChance = document.getElementById("upWheelChance");
     elements.payout = document.getElementById("upPayout");
-    elements.zone = document.getElementById("upZone");
+    elements.zone = document.getElementById("upWheel");
     elements.marker = document.getElementById("upMarker");
     elements.result = document.getElementById("upResult");
     elements.action = document.getElementById("upAction");
