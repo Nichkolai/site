@@ -294,6 +294,13 @@ html, body { background: #07110b; color: #eef7ef; }
   border-color: #24452e;
   background: #102117;
 }
+.marquee-lights i,
+.marquee-lights i:nth-child(2n) {
+  background: #4f8a62;
+  box-shadow: none;
+  animation: none;
+}
+.marquee-lights i:nth-child(2n) { background: #c8f169; }
 .slot-title em { color: #c8f169; text-shadow: none; }
 .slot-stage {
   border-color: #1d3525;
@@ -307,7 +314,9 @@ html, body { background: #07110b; color: #eef7ef; }
   border-color: #4e9c6b;
   background: #143c27;
   box-shadow: none;
+  animation: none;
 }
+.slot-cell[data-symbol="seven"] { text-shadow: none; }
 .slot-win { border-color: #1d3525; background: #08130d; }
 .spin-btn { border-radius: 10px; }
 .bj-table { border-radius: 16px; }
@@ -317,7 +326,11 @@ html, body { background: #07110b; color: #eef7ef; }
 .bj-status { background: #07110b; }
 .wheel-card { border-radius: 16px; }
 .wheel-hub strong { color: #c8f169; }
-.wheel-pointer { color: #eef7ef; }
+.wheel-pointer {
+  color: #eef7ef;
+  background: #eef7ef;
+  filter: none;
+}
 .board-panel { border-radius: 16px; }
 .board-head h2 { color: #eef7ef; }
 .roulette-chip {
@@ -330,6 +343,7 @@ html, body { background: #07110b; color: #eef7ef; }
   border-color: #c8f169;
   background: #12281a;
   color: #d9ff8d;
+  box-shadow: none;
 }
 .roulette-numbers button {
   border-color: #1d3525;
@@ -346,6 +360,7 @@ html, body { background: #07110b; color: #eef7ef; }
   border-color: #4e9c6b;
   background: #143c27;
   color: #58d99a;
+  box-shadow: none;
 }
 .crash-panel { border-radius: 16px; }
 .crash-stage {
@@ -355,6 +370,7 @@ html, body { background: #07110b; color: #eef7ef; }
 .crash-stage.hot { background: #1b2112; border-color: #6a5a2b; }
 .crash-stage.crashed { background: #22151a; border-color: #5c3540; }
 .crash-history i { border-color: #1d3525; background: #102117; }
+.crash-label i { background: #e9c46a; box-shadow: none; }
 
 .bet-console {
   gap: 7px;

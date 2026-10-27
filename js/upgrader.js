@@ -110,9 +110,7 @@
 
   function betOptions() {
     const balance = NP.getState().balance;
-    const options = BET_STEPS.filter((value) => value <= balance);
-    if (balance >= MIN_BET && !options.includes(balance)) options.push(balance);
-    return options.sort((a, b) => a - b);
+    return BET_STEPS.filter((value) => value <= balance);
   }
 
   function setBet(value) {
@@ -221,7 +219,7 @@
       NP.recordResult({
         game: "upgrader",
         title: "Апгрейд",
-        detail: `Цель ×${target.toFixed(2)} · шанс ${formatChance(chance)} · ставка ${NP.formatStars(bet)}`,
+        detail: `Цель ×${target.toFixed(2)} · шанс ${formatChance(chance)}`,
         delta: net,
         wager: bet
       });

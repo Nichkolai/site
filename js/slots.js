@@ -315,8 +315,8 @@
     showResult(result.total, result.lineCount);
     const net = result.total - bet;
     const detail = result.total > 0
-      ? `${result.lineCount} ${result.lineCount === 1 ? "линия" : result.lineCount < 5 ? "линии" : "линий"} · ставка ${NP.formatStars(bet)}`
-      : `Без выигрыша · ставка ${NP.formatStars(bet)}`;
+      ? `${result.lineCount} ${result.lineCount === 1 ? "линия" : result.lineCount < 5 ? "линии" : "линий"}`
+      : "Без выигрыша";
 
     NP.recordResult({
       game: "slots",

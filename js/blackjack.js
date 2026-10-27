@@ -338,19 +338,19 @@
         payout = wager + blackjackProfit;
         tone = "win";
         statusText = `Блэкджек! +${NP.formatStars(blackjackProfit)} ★`;
-        detailText = `Блэкджек · ставка ${NP.formatStars(wager)}`;
+        detailText = "Блэкджек";
         break;
       case "win":
         payout = wager * 2;
         tone = "win";
         statusText = `Вы выиграли ${playerTotal}:${dealerTotal} · +${NP.formatStars(wager)} ★`;
-        detailText = `${playerTotal}:${dealerTotal} в вашу пользу · ставка ${NP.formatStars(wager)}`;
+        detailText = `${playerTotal}:${dealerTotal} в вашу пользу`;
         break;
       case "dealerBust":
         payout = wager * 2;
         tone = "win";
         statusText = `Перебор у дилера: ${dealerTotal} · +${NP.formatStars(wager)} ★`;
-        detailText = `Перебор дилера ${dealerTotal} · ставка ${NP.formatStars(wager)}`;
+        detailText = `Перебор дилера ${dealerTotal}`;
         break;
       case "push":
         payout = wager;
@@ -360,15 +360,15 @@
         break;
       case "bust":
         statusText = `Перебор ${playerTotal} · −${NP.formatStars(wager)} ★`;
-        detailText = `Перебор ${playerTotal} · ставка ${NP.formatStars(wager)}`;
+        detailText = `Перебор ${playerTotal}`;
         break;
       case "dealerBlackjack":
         statusText = `Блэкджек у дилера · −${NP.formatStars(wager)} ★`;
-        detailText = `Блэкджек у дилера · ставка ${NP.formatStars(wager)}`;
+        detailText = "Блэкджек у дилера";
         break;
       default:
         statusText = `Дилер сильнее ${dealerTotal}:${playerTotal} · −${NP.formatStars(wager)} ★`;
-        detailText = `Дилер ${dealerTotal}:${playerTotal} · ставка ${NP.formatStars(wager)}`;
+        detailText = `Дилер ${dealerTotal}:${playerTotal}`;
     }
 
     if (payout > 0) NP.adjustBalance(payout, { animate: true });

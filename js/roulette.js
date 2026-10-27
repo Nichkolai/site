@@ -309,7 +309,7 @@
     context.beginPath();
     context.arc(center, center, 77, 0, Math.PI * 2);
     context.lineWidth = 1;
-    context.strokeStyle = "rgba(200, 255, 94, 0.15)";
+    context.strokeStyle = "rgba(200, 241, 105, 0.15)";
     context.stroke();
 
     // Outer dots.
@@ -319,7 +319,7 @@
       const y = center + Math.sin(angle) * 346;
       context.beginPath();
       context.arc(x, y, index % 2 === 0 ? 1.7 : 1, 0, Math.PI * 2);
-      context.fillStyle = index % 2 === 0 ? "rgba(200, 255, 94, 0.38)" : "rgba(255, 255, 255, 0.16)";
+      context.fillStyle = index % 2 === 0 ? "rgba(200, 241, 105, 0.38)" : "rgba(255, 255, 255, 0.16)";
       context.fill();
     }
 
@@ -451,8 +451,8 @@
     const parity = isZero(number) ? "зеро" : number % 2 === 0 ? "чётное" : "нечётное";
     const net = payout - stake;
     const summary = payout > 0
-      ? `${colorName(number)} · ${parity}<strong>${net >= 0 ? `+${NP.formatStars(net)}` : `−${NP.formatStars(Math.abs(net))}`} ★</strong>`
-      : `${colorName(number)} · ${parity}<strong>Ставка не сыграла</strong>`;
+      ? `${colorName(number)} · ${parity} <strong>${net >= 0 ? `+${NP.formatStars(net)}` : `−${NP.formatStars(Math.abs(net))}`} ★</strong>`
+      : `${colorName(number)} · ${parity} <strong>Ставка не сыграла</strong>`;
     elements.resultCopy.innerHTML = summary;
   }
 
@@ -506,7 +506,7 @@
     NP.recordResult({
       game: "roulette",
       title: "Рулетка",
-      detail: `Выпало ${labelOf(winner)} · ${colorName(winner)} · ставка ${NP.formatStars(stake)}`,
+      detail: `Выпало ${labelOf(winner)} · ${colorName(winner)}`,
       delta: net,
       wager: stake
     });

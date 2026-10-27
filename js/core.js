@@ -509,8 +509,8 @@
     try {
       webApp.ready();
       webApp.expand();
-      if (typeof webApp.setHeaderColor === "function") webApp.setHeaderColor("#07090d");
-      if (typeof webApp.setBackgroundColor === "function") webApp.setBackgroundColor("#07090d");
+      if (typeof webApp.setHeaderColor === "function") webApp.setHeaderColor("#07110b");
+      if (typeof webApp.setBackgroundColor === "function") webApp.setBackgroundColor("#07110b");
       if (typeof webApp.disableVerticalSwipes === "function") webApp.disableVerticalSwipes();
     } catch (error) {
       /* Older Telegram clients. */
@@ -679,7 +679,7 @@
     const layer = document.getElementById("confettiLayer");
     if (!layer) return;
     layer.replaceChildren();
-    const colors = ["#c8ff5e", "#ffd166", "#ff6478", "#a98bff", "#65b9ff", "#ffffff"];
+    const colors = ["#c8f169", "#58d99a", "#e9c46a", "#eef7ef"];
 
     for (let index = 0; index < count; index += 1) {
       const piece = document.createElement("i");

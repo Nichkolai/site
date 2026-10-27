@@ -234,7 +234,7 @@
     NP.recordResult({
       game: "mines",
       title: "Мины",
-      detail: `Открыто ${game.picks} из 20 · ставка ${NP.formatStars(game.wager)}`,
+      detail: `Открыто ${game.picks} из 20`,
       delta: net,
       wager: game.wager
     });
@@ -270,7 +270,7 @@
       NP.recordResult({
         game: "mines",
         title: "Мины",
-        detail: `Мина после ${game.picks} ${game.picks === 1 ? "звезды" : "звёзд"} · ставка ${NP.formatStars(game.wager)}`,
+        detail: `Мина после ${game.picks} ${game.picks === 1 ? "звезды" : "звёзд"}`,
         delta: -game.wager,
         wager: game.wager
       });

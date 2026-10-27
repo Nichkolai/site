@@ -139,8 +139,8 @@
       context.lineTo(pad.left, pad.top + plotHeight);
       context.closePath();
       const fill = context.createLinearGradient(0, pad.top, 0, pad.top + plotHeight);
-      fill.addColorStop(0, crashed ? "rgba(255, 93, 115, 0.2)" : "rgba(200, 255, 94, 0.18)");
-      fill.addColorStop(1, "rgba(200, 255, 94, 0)");
+      fill.addColorStop(0, crashed ? "rgba(238, 107, 124, 0.12)" : "rgba(200, 241, 105, 0.1)");
+      fill.addColorStop(1, "rgba(200, 241, 105, 0)");
       context.fillStyle = fill;
       context.fill();
 
@@ -148,16 +148,13 @@
       context.moveTo(points[0][0], points[0][1]);
       points.slice(1).forEach(([x, y]) => context.lineTo(x, y));
       context.lineWidth = 2.5;
-      context.strokeStyle = crashed ? "#ff8494" : "#c8ff5e";
-      context.shadowColor = crashed ? "rgba(255, 93, 115, 0.5)" : "rgba(200, 255, 94, 0.55)";
-      context.shadowBlur = 10;
+      context.strokeStyle = crashed ? "#ee6b7c" : "#c8f169";
       context.stroke();
-      context.shadowBlur = 0;
 
       const [endX, endY] = points[points.length - 1];
       context.beginPath();
       context.arc(endX, endY, 4, 0, Math.PI * 2);
-      context.fillStyle = crashed ? "#ff8494" : "#d8ff7b";
+      context.fillStyle = crashed ? "#ee6b7c" : "#c8f169";
       context.fill();
     }
   }
@@ -251,7 +248,7 @@
     NP.recordResult({
       game: "crash",
       title: "Краш",
-      detail: `Краш на ${formatMultiplier(value)} · ставка ${NP.formatStars(game.wager)}`,
+      detail: `На ${formatMultiplier(value)}`,
       delta: -game.wager,
       wager: game.wager
     });
@@ -292,7 +289,7 @@
     NP.recordResult({
       game: "crash",
       title: "Краш",
-      detail: `Забрали на ${formatMultiplier(value)} · ставка ${NP.formatStars(game.wager)}`,
+      detail: `Забрали на ${formatMultiplier(value)}`,
       delta: net,
       wager: game.wager
     });
