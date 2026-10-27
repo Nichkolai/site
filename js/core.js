@@ -12,7 +12,8 @@
   const MIN_TOPUP = 1;
   const MAX_TOPUP = 1000000;
   const DEFAULT_TOPUP = 500;
-  const BOT_LINK = "https://t.me/kazbot";
+  // ShuzaGram bot links use sgq.me; t.me links open the wrong client.
+  const BOT_LINK = "https://sgq.me/kazbot";
   const MAX_HISTORY = 100;
 
   const GAME_VIEWS = new Set(["slots", "blackjack", "roulette", "mines", "crash", "upgrader"]);
@@ -868,7 +869,30 @@
     return false;
   }
 
-  function submitTopup() {
+  async function requestInvoice(amount) {
+    if (!telegram || !telegram.initData) return false;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch("/api/topup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: controller.signal,
+        body: JSON.stringify({ initData: telegram.initData, amount })
+      });
+      if (!response.ok) return false;
+      const payload = await response.json();
+      return Boolean(payload && payload.ok);
+    } catch (error) {
+      return false;
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  async function submitTopup() {
     const input = document.getElementById("topupAmount");
     const amount = Math.round(safeNumber(input && input.value));
     if (amount < MIN_TOPUP || amount > MAX_TOPUP) {
@@ -886,19 +910,30 @@
     }
 
     const button = document.getElementById("topupSubmitBtn");
+    const footnote = document.getElementById("topupFootnote");
     if (button) {
       button.disabled = true;
-      button.textContent = "Открываем чат…";
+      button.textContent = "Отправляем счёт…";
     }
     const resetButton = () => {
       if (!button) return;
       button.textContent = "Пополнить за Stars";
       updateTopupUI();
     };
-    const startUrl = `${BOT_LINK}?start=topup_${amount}`;
 
-    // A direct bot deep link is more reliable than sendData in some
-    // Telegram-compatible clients: /start topup_<amount> creates the invoice.
+    // The bot sends the invoice straight into the user's chat, so the
+    // top-up does not depend on deep-link support in the client.
+    if (await requestInvoice(amount)) {
+      resetButton();
+      if (footnote) {
+        footnote.textContent = `Счёт на ${formatStars(amount)} ★ отправлен в чат с ботом · оплатите и нажмите «Проверить»`;
+      }
+      toast("Счёт отправлен", `Счёт на ${formatStars(amount)} ★ — в чате с ботом.`, "info");
+      return;
+    }
+
+    // Fallback: open the bot chat with a top-up deep link.
+    const startUrl = `${BOT_LINK}?start=topup_${amount}`;
     if (tryOpenTopupLink(startUrl)) {
       toast("Счёт в чате", "Откройте чат с ботом — счёт уже там.", "info");
       window.setTimeout(resetButton, 4000);
@@ -1178,16 +1213,6 @@
     toast("Заявка создана", `${formatStars(amount)} ★ зарезервированы для вывода.`, "info");
   }
 
-  function confirmReset() {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      /* Ignore storage errors. */
-    }
-    location.hash = "#lobby";
-    location.reload();
-  }
-
   /* ---------- Event wiring ---------- */
   function bindEvents() {
     document.addEventListener("click", (event) => {
@@ -1223,8 +1248,6 @@
       toast(state.sound ? "Звук включён" : "Звук выключен", "", "info");
     });
     document.getElementById("claimBonusBtn")?.addEventListener("click", claimDaily);
-    document.getElementById("openResetBtn2")?.addEventListener("click", () => openModal("modalReset"));
-    document.getElementById("confirmResetBtn")?.addEventListener("click", confirmReset);
 
     document.getElementById("topupAmount")?.addEventListener("input", updateTopupUI);
     document.getElementById("topupSubmitBtn")?.addEventListener("click", submitTopup);

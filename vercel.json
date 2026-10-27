@@ -6,6 +6,9 @@
     },
     "api/purchases.py": {
       "maxDuration": 30
+    },
+    "api/topup.py": {
+      "maxDuration": 30
     }
   }
 }

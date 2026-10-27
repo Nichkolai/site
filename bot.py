@@ -238,7 +238,7 @@ def parse_topup_payload(payload: str) -> int | None:
     return amount
 
 
-def send_topup_invoice(chat_id: int, amount: int) -> None:
+def send_topup_invoice(chat_id: int, amount: int) -> int | None:
     amount = int(amount)
     invoice_payload = f"topup:{amount}:{secrets.token_hex(8)}"
     result = api("sendInvoice", {
@@ -254,6 +254,7 @@ def send_topup_invoice(chat_id: int, amount: int) -> None:
     })
     message_id = result.get("message_id") if isinstance(result, dict) else None
     log(f"[bot] topup invoice sent chat={chat_id} amount={amount} message_id={message_id}")
+    return message_id
 
 
 def handle_topup_request(message: dict, chat_id: int, data: dict) -> None:

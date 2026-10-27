@@ -8,9 +8,9 @@
   <meta name="description" content="KAZ — казино в Telegram. Слоты, блэкджек, рулетка, мины, краш и апгрейд.">
   <title>KAZ — казино</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2307110b'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23c8f169'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=28">
-  <link rel="stylesheet" href="games.css?v=28">
-  <link rel="stylesheet" href="theme.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=29">
+  <link rel="stylesheet" href="games.css?v=29">
+  <link rel="stylesheet" href="theme.css?v=29">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -512,17 +512,6 @@
           <div class="history-list" id="withdrawHistoryList"></div>
         </article>
 
-        <div class="danger-zone">
-          <div>
-            <strong>Сбросить прогресс</strong>
-            <p>Баланс вернётся к 50 звёздам, история очистится.</p>
-          </div>
-          <button class="btn btn-danger" type="button" id="openResetBtn2">
-            <svg class="icon"><use href="#i-reset"></use></svg>
-            Сбросить
-          </button>
-        </div>
-
       </section>
     </main>
 
@@ -617,29 +606,15 @@
     </div>
   </div>
 
-  <div class="modal" id="modalReset" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
-    <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
-      <span class="modal-star danger"><svg class="icon"><use href="#i-reset"></use></svg></span>
-      <h2 id="resetModalTitle">Сбросить прогресс?</h2>
-      <p>Баланс вернётся к 50 звёздам, история и статистика будут удалены. Это действие нельзя отменить.</p>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" type="button" data-close-modal>Отмена</button>
-        <button class="btn btn-danger" type="button" id="confirmResetBtn">Сбросить</button>
-      </div>
-    </div>
-  </div>
-
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
   <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
-  <script src="js/core.js?v=28"></script>
-  <script src="js/slots.js?v=28"></script>
-  <script src="js/blackjack.js?v=28"></script>
-  <script src="js/roulette.js?v=28"></script>
-  <script src="js/mines.js?v=28"></script>
-  <script src="js/crash.js?v=28"></script>
-  <script src="js/upgrader.js?v=28"></script>
+  <script src="js/core.js?v=29"></script>
+  <script src="js/slots.js?v=29"></script>
+  <script src="js/blackjack.js?v=29"></script>
+  <script src="js/roulette.js?v=29"></script>
+  <script src="js/mines.js?v=29"></script>
+  <script src="js/crash.js?v=29"></script>
+  <script src="js/upgrader.js?v=29"></script>
 </body>
 </html>

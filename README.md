@@ -33,9 +33,10 @@ Telegram Stars. История, баланс и настройки хранят�
 
 Сценарий:
 
-1. Приложение открывает чат с ботом по ссылке `?start=topup_<сумма>`; бот
-   получает сумму из `/start` и создаёт счёт. Если `openTelegramLink` недоступен,
-   используется резервная отправка через `sendData`.
+1. Приложение отправляет подписанный `initData` на `/api/topup`, и бот сразу
+   создаёт счёт в личном чате игрока. Если endpoint недоступен, приложение
+   открывает бота по ссылке `https://sgq.me/kazbot?start=topup_<сумма>`, а затем
+   пробует резервную отправку через `sendData`.
 2. Бот создаёт счёт `sendInvoice` в валюте `XTR` (Telegram Stars).
 3. Игрок оплачивает счёт в чате.
 4. Webhook получает `pre_checkout_query` и `successful_payment`, проверяет
@@ -48,6 +49,9 @@ Telegram Stars. История, баланс и настройки хранят�
 Оплата создаётся через `sendInvoice`, потому что Shuza API не поддерживает
 `createInvoiceLink`. Поэтому счёт открывается в чате с ботом, а не внутри
 модального окна. После оплаты нужно вернуться в приложение.
+
+Ссылки на бота в ShuzaGram имеют вид `https://sgq.me/kazbot`; ссылки `t.me`
+ведут в другой клиент и в проекте не используются.
 
 ## Вывод звёзд
 
@@ -98,6 +102,7 @@ js/
 .nojekyll
 .python-version
 api/telegram.py
+api/topup.py
 bot.py
 vercel.json
 ```
@@ -126,7 +131,7 @@ vercel.json
 
 ### Обновление
 
-После изменений в веб-части или `api/telegram.py` сделайте commit и push в
+После изменений в веб-части или `api/` сделайте commit и push в
 `main`. Vercel пересоберёт сайт и функцию автоматически. Для ручного деплоя:
 
 ```powershell
@@ -141,6 +146,9 @@ GET https://site-ten-sepia-56.vercel.app/api/telegram
 
 GET https://site-ten-sepia-56.vercel.app/api/purchases
 → {"ok": true, "service": "kaz-purchases"}
+
+GET https://site-ten-sepia-56.vercel.app/api/topup
+→ {"ok": true, "service": "kaz-topup"}
 ```
 
 ### Webhook
@@ -199,6 +207,7 @@ bot.py           логика ShuzaGram-бота + локальный стати
 payments.py      проверка initData, Telegram Stars и Vercel Blob
 api/telegram.py  Vercel webhook entrypoint
 api/purchases.py синхронизация подтверждённых пополнений
+api/topup.py     счёт на пополнение по подписанному initData
 requirements.txt Python-зависимость Vercel Blob
 vercel.json      настройки функций
 ```
