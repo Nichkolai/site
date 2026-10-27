@@ -115,23 +115,53 @@ html, body { background: #07110b; color: #eef7ef; }
 }
 .game-chip.active {
   border-color: #c8f169;
-  background: #12281a;
+  background: var(--game-tile, #12281a);
   color: var(--game-accent, #d9ff8d);
   box-shadow: none;
 }
 
 .game-card[data-nav="mines"],
-.game-chip[data-nav="mines"] { --game-accent: var(--game-mines); }
+.game-chip[data-nav="mines"] {
+  --game-accent: var(--game-mines);
+  --game-bg: #0b1a11;
+  --game-line: #1d3525;
+  --game-tile: #12291a;
+}
 .game-card[data-nav="crash"],
-.game-chip[data-nav="crash"] { --game-accent: var(--game-crash); }
+.game-chip[data-nav="crash"] {
+  --game-accent: var(--game-crash);
+  --game-bg: #1a140f;
+  --game-line: #3a2a1d;
+  --game-tile: #281d14;
+}
 .game-card[data-nav="upgrader"],
-.game-chip[data-nav="upgrader"] { --game-accent: var(--game-upgrader); }
+.game-chip[data-nav="upgrader"] {
+  --game-accent: var(--game-upgrader);
+  --game-bg: #191a10;
+  --game-line: #3a3620;
+  --game-tile: #292714;
+}
 .game-card[data-nav="slots"],
-.game-chip[data-nav="slots"] { --game-accent: var(--game-slots); }
+.game-chip[data-nav="slots"] {
+  --game-accent: var(--game-slots);
+  --game-bg: #0a1a17;
+  --game-line: #1d3a33;
+  --game-tile: #102a24;
+}
 .game-card[data-nav="blackjack"],
-.game-chip[data-nav="blackjack"] { --game-accent: var(--game-blackjack); }
+.game-chip[data-nav="blackjack"] {
+  --game-accent: var(--game-blackjack);
+  --game-bg: #0b1620;
+  --game-line: #1d2c3d;
+  --game-tile: #132333;
+}
 .game-card[data-nav="roulette"],
-.game-chip[data-nav="roulette"] { --game-accent: var(--game-roulette); }
+.game-chip[data-nav="roulette"] {
+  --game-accent: var(--game-roulette);
+  --game-bg: #1a1116;
+  --game-line: #3a2230;
+  --game-tile: #291820;
+}
 
 .hero {
   padding: 17px 17px 16px;
@@ -213,9 +243,9 @@ html, body { background: #07110b; color: #eef7ef; }
   counter-increment: game;
   min-height: 102px;
   padding: 12px;
-  border-color: #1d3525;
+  border-color: var(--game-line, #1d3525);
   border-radius: 11px;
-  background: #0c1a11;
+  background: var(--game-bg, #0c1a11);
   box-shadow: none;
 }
 .game-card::after {
@@ -229,18 +259,18 @@ html, body { background: #07110b; color: #eef7ef; }
   letter-spacing: 0.08em;
 }
 .game-card:active {
-  border-color: #477b53;
-  background: #102117;
+  border-color: var(--game-accent, #477b53);
+  background: var(--game-tile, #102117);
   transform: none;
 }
 .game-card .game-icon,
 .app .game-card .game-icon {
   width: 36px;
   height: 36px;
-  border: 1px solid #24452e;
+  border: 1px solid var(--game-line, #24452e);
   border-radius: 8px;
   color: var(--game-accent, #c8f169);
-  background: #12291a;
+  background: var(--game-tile, #12291a);
 }
 .game-copy strong { color: var(--game-accent, #eef7ef); font-size: 13px; }
 .game-copy small {
@@ -274,12 +304,12 @@ html, body { background: #07110b; color: #eef7ef; }
   color: #c8f169;
   background: #12261a;
 }
-.recent-icon.mines { color: var(--game-mines); }
-.recent-icon.crash { color: var(--game-crash); }
-.recent-icon.upgrader { color: var(--game-upgrader); }
-.recent-icon.slots { color: var(--game-slots); }
-.recent-icon.blackjack { color: var(--game-blackjack); }
-.recent-icon.roulette { color: var(--game-roulette); }
+.recent-icon.mines { color: var(--game-mines); background: #12291a; }
+.recent-icon.crash { color: var(--game-crash); background: #281d14; }
+.recent-icon.upgrader { color: var(--game-upgrader); background: #292714; }
+.recent-icon.slots { color: var(--game-slots); background: #102a24; }
+.recent-icon.blackjack { color: var(--game-blackjack); background: #132333; }
+.recent-icon.roulette { color: var(--game-roulette); background: #291820; }
 .recent-icon.mines + .history-title strong,
 .recent-icon.mines + .recent-main strong { color: var(--game-mines); }
 .recent-icon.crash + .history-title strong,
