@@ -511,6 +511,8 @@ img, canvas { display: block; max-width: 100%; }
   gap: 12px;
   margin-top: 10px;
   padding: 12px 14px;
+  border-color: rgba(200, 255, 94, 0.16);
+  background: linear-gradient(135deg, rgba(200, 255, 94, 0.07), var(--panel) 62%);
 }
 
 .topup-strip-balance { display: flex; flex-direction: column; gap: 2px; }
@@ -658,6 +660,7 @@ img, canvas { display: block; max-width: 100%; }
 .recent-icon.crash { color: var(--orange); background: rgba(255, 159, 90, 0.09); }
 .recent-icon.upgrader { color: var(--teal); background: rgba(95, 240, 208, 0.09); }
 .recent-icon.withdraw { color: var(--gold); background: rgba(255, 210, 106, 0.1); }
+.recent-icon.topup { color: var(--lime); background: rgba(200, 255, 94, 0.1); }
 
 .recent-main { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .recent-main strong { overflow: hidden; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
@@ -887,6 +890,11 @@ img, canvas { display: block; max-width: 100%; }
   white-space: nowrap;
 }
 
+.withdraw-status.credited {
+  color: var(--lime);
+  background: rgba(200, 255, 94, 0.09);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -1106,6 +1114,21 @@ img, canvas { display: block; max-width: 100%; }
 .topup-summary small { color: var(--gold); font-size: 11px; }
 .topup-rate { margin-top: 6px; text-align: left; }
 .topup-summary + .topup-rate + .modal-main-btn { margin-top: 10px; }
+
+.topup-check-btn {
+  margin-top: 10px;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.18);
+  text-underline-offset: 3px;
+}
+.topup-check-btn:active { color: var(--text); }
+.topup-check-btn:disabled { opacity: 0.5; }
 
 .modal-warning {
   display: flex;

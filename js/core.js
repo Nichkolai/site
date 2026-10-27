@@ -369,6 +369,45 @@
     });
   }
 
+  function renderPurchases() {
+    const list = document.getElementById("purchaseHistoryList");
+    if (!list) return;
+
+    list.replaceChildren();
+    const count = document.getElementById("purchaseHistoryCount");
+    if (count) {
+      count.textContent = `${state.purchases.length} ${plural(
+        state.purchases.length,
+        "пополнение",
+        "пополнения",
+        "пополнений"
+      )}`;
+    }
+
+    if (!state.purchases.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-inline";
+      empty.textContent = "Пополнений пока нет. Баланс можно пополнить за Telegram Stars.";
+      list.append(empty);
+      return;
+    }
+
+    state.purchases.slice(0, 5).forEach((purchase) => {
+      const row = document.createElement("div");
+      row.className = "history-row";
+      row.innerHTML = `
+        <span class="recent-icon topup">${iconMarkup("#i-plus")}</span>
+        <div class="history-title">
+          <strong>Пополнение +${formatStars(purchase.amount)} ★</strong>
+          <span>Telegram Stars · 1 ★ = 1 Star</span>
+          <small>${escapeHtml(historyDate(purchase.at))}</small>
+        </div>
+        <span class="withdraw-status credited">Зачислено</span>
+      `;
+      list.append(row);
+    });
+  }
+
   function recordResult({ game, title, detail, delta, wager }) {
     if (!GAME_META[game]) return;
     const net = Math.round(safeNumber(delta));
@@ -436,6 +475,7 @@
     renderBalance(false);
     renderStats();
     renderHistory();
+    renderPurchases();
     updateDailyUI();
   }
 
@@ -822,33 +862,51 @@
     }
   }
 
+  async function checkTopup() {
+    const button = document.getElementById("topupCheckBtn");
+    if (!button) return;
+    button.disabled = true;
+    button.textContent = "Проверяем оплату…";
+    const credited = await syncPurchases(true);
+    button.disabled = false;
+    button.textContent = "Уже оплатил · проверить";
+    if (credited > 0) {
+      closeModal("modalTopup");
+      return;
+    }
+    toast("Платёж пока не найден", "Если оплата прошла, подождите несколько секунд и попробуйте снова.", "info");
+  }
+
   let purchaseSyncPromise = null;
   let lastPurchaseSync = 0;
 
-  async function syncPurchases() {
-    if (!telegram || !telegram.initData) return;
+  async function syncPurchases(force = false) {
+    if (!telegram || !telegram.initData) return 0;
     if (purchaseSyncPromise) return purchaseSyncPromise;
-    if (Date.now() - lastPurchaseSync < 3000) return;
+    if (!force && Date.now() - lastPurchaseSync < 3000) return 0;
     lastPurchaseSync = Date.now();
 
     purchaseSyncPromise = (async () => {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), 10000);
       try {
         const response = await fetch("/api/purchases", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
           credentials: "same-origin",
+          signal: controller.signal,
           body: JSON.stringify({ initData: telegram.initData })
         });
-        if (!response.ok) return;
+        if (!response.ok) return 0;
         const payload = await response.json();
-        if (!payload || !Array.isArray(payload.purchases)) return;
+        if (!payload || !Array.isArray(payload.purchases)) return 0;
 
         const known = new Set(state.purchases.map((item) => item.chargeId));
         let credited = 0;
         payload.purchases.forEach((purchase) => {
           const chargeId = String(purchase.charge_id || "").slice(0, 100);
-          const amount = Math.max(0, Math.round(safeNumber(purchase.amount)));
+          const amount = Math.min(MAX_TOPUP, Math.max(0, Math.round(safeNumber(purchase.amount))));
           if (!chargeId || !amount || known.has(chargeId)) return;
           known.add(chargeId);
           state.purchases.unshift({
@@ -859,18 +917,22 @@
           credited += amount;
         });
 
-        if (!credited) return;
+        if (!credited) return 0;
         state.purchases = state.purchases.slice(0, 100);
         state.balance = Math.max(0, state.balance + credited);
         saveState();
         renderBalance(true);
+        renderPurchases();
         sound("cash");
         haptic("success");
         toast("Баланс пополнен", `+${formatStars(credited)} ★ зачислено.`);
         document.dispatchEvent(new CustomEvent("np:state"));
+        return credited;
       } catch (error) {
         /* Payment sync is best-effort; the next app open will retry. */
+        return 0;
       } finally {
+        window.clearTimeout(timer);
         purchaseSyncPromise = null;
       }
     })();
@@ -1078,6 +1140,7 @@
 
     document.getElementById("topupAmount")?.addEventListener("input", updateTopupUI);
     document.getElementById("topupSubmitBtn")?.addEventListener("click", submitTopup);
+    document.getElementById("topupCheckBtn")?.addEventListener("click", checkTopup);
 
     const withdrawAmount = document.getElementById("withdrawAmount");
     withdrawAmount?.addEventListener("input", updateWithdrawUI);
