@@ -13,6 +13,7 @@
     .reverse()
     .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
   const TARGETS = [1.5, 2, 3, 5, 10];
+  const TARGET_EMOJI = { 1.5: "🎁", 2: "🌹", 3: "🎂", 5: "🏆", 10: "💎" };
   const HOUSE_EDGE = 0.93;
   // The displayed chance stays the same; the actual roll uses a hidden
   // reduction so the visible marker never contradicts the result.
@@ -37,6 +38,7 @@
     payout: null,
     zone: null,
     marker: null,
+    emoji: null,
     result: null,
     action: null,
     targets: null
@@ -59,7 +61,14 @@
     if (elements.target) elements.target.textContent = `×${game.target.toFixed(2)}`;
     if (elements.chance) elements.chance.textContent = formatChance(chanceFor());
     if (elements.wheelChance) elements.wheelChance.textContent = formatChance(chanceFor());
+    if (elements.emoji) elements.emoji.textContent = TARGET_EMOJI[game.target] || "🎁";
     if (elements.payout) elements.payout.textContent = `${NP.formatStars(payoutFor())} ★`;
+    if (elements.zone) {
+      elements.zone.setAttribute(
+        "aria-label",
+        `Колесо апгрейда, множитель ×${game.target}, шанс ${formatChance(chanceFor())}`
+      );
+    }
     if (elements.zone) {
       elements.zone.style.setProperty("--chance", (chanceFor() * 100).toFixed(2));
     }
@@ -236,6 +245,7 @@
     elements.payout = document.getElementById("upPayout");
     elements.zone = document.getElementById("upWheel");
     elements.marker = document.getElementById("upMarker");
+    elements.emoji = document.getElementById("upEmoji");
     elements.result = document.getElementById("upResult");
     elements.action = document.getElementById("upAction");
     elements.targets = document.getElementById("upTargets");
