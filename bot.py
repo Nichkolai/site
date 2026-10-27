@@ -374,22 +374,53 @@ def handle_successful_payment(message: dict, chat_id: int) -> None:
         )
         return
 
-    stored = payments.save_purchase(
-        user_id=user_id,
-        amount=amount,
-        currency=currency,
-        charge_id=charge_id,
-        payload=payload,
-    )
-    if not stored:
-        log(f"[bot] payment: duplicate charge {charge_id}")
-        return
-
     username = user.get("username")
     full_name = " ".join(
         part for part in (user.get("first_name"), user.get("last_name")) if part
     ).strip()
     player = f"@{username}" if username else full_name or "без имени"
+
+    try:
+        stored = payments.save_purchase(
+            user_id=user_id,
+            amount=amount,
+            currency=currency,
+            charge_id=charge_id,
+            payload=payload,
+        )
+    except payments.PaymentStorageError as exc:
+        # Stars are already charged: never stay silent. Tell the player and
+        # the admins so the purchase can be credited manually or refunded.
+        log(f"[bot] payment NOT STORED user={user_id} amount={amount} charge={charge_id}: {exc}")
+        try:
+            send_message(
+                chat_id,
+                f"✅ Оплата получена: <b>{amount} ★</b>, но зачисление задерживается. "
+                "Администратор уже уведомлён — баланс будет пополнен вручную.",
+            )
+        except BotAPIError as send_exc:
+            log(f"[bot] payment notice: {send_exc.description}")
+        for admin_id in ADMIN_IDS:
+            admin_chat = int(admin_id) if admin_id.lstrip("-").isdigit() else admin_id
+            try:
+                api("sendMessage", {
+                    "chat_id": admin_chat,
+                    "text": (
+                        "<b>⚠️ Платёж не сохранён</b>\n\n"
+                        f"Игрок: {html.escape(player)} (ID <code>{user_id}</code>)\n"
+                        f"Сумма: <b>{amount} ★</b>\n"
+                        f"Charge: <code>{html.escape(charge_id[:80])}</code>\n"
+                        f"Ошибка: {html.escape(str(exc)[:200])}"
+                    ),
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": True,
+                })
+            except BotAPIError as admin_exc:
+                log(f"[bot] payment: админ {admin_id}: {admin_exc.description}")
+        return
+    if not stored:
+        log(f"[bot] payment: duplicate charge {charge_id}")
+        return
 
     send_message(
         chat_id,
