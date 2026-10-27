@@ -210,7 +210,7 @@ HELP = (
     "/play — кнопка запуска Mini App\n"
     "/buy 500 — счёт на пополнение (по умолчанию 500 ★)\n"
     "/stars — как работают звёзды\n"
-    "/id — ваш Telegram ID (для связи с администратором)\n"
+    "/id — ваш ShuzaGram ID (для связи с администратором)\n"
     "/help — эта справка\n\n"
     "Прогресс хранится локально в вашем браузере."
 )
@@ -637,10 +637,11 @@ def handle_update(update: dict) -> None:
         user_id = html.escape(str(user.get("id", "—")))
         send_message(
             chat_id,
-            f"Ваш Telegram ID: <code>{user_id}</code>\n\n"
-            "Чтобы получать заявки на вывод, добавьте в <code>.env</code>:\n"
+            f"Ваш ShuzaGram ID: <code>{user_id}</code>\n\n"
+            "Чтобы получать заявки на вывод, добавьте ID в <code>ADMIN_IDS</code> "
+            "в Vercel Environment Variables или в локальном <code>.env</code>:\n"
             f"<code>ADMIN_IDS={user_id}</code>\n"
-            "Несколько ID — через запятую. После этого перезапустите <code>bot.py</code>.",
+            "Несколько ID — через запятую.",
         )
     elif command == "/help":
         send_message(chat_id, HELP)
@@ -665,8 +666,8 @@ def configure_bot() -> str:
                 {"command": "start", "description": "Открыть KAZ"},
                 {"command": "play", "description": "Запустить Mini App"},
                 {"command": "buy", "description": "Пополнить звёзды"},
-                {"command": "stars", "description": "О виртуальных звёздах"},
-                {"command": "id", "description": "Мой Telegram ID"},
+                {"command": "stars", "description": "О звёздах и выводе"},
+                {"command": "id", "description": "Мой ShuzaGram ID"},
                 {"command": "help", "description": "Справка"},
             ]
         })
