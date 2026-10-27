@@ -152,28 +152,51 @@ def can_use_webapp() -> bool:
     return WEBAPP_URL.lower().startswith("https://")
 
 
-def webapp_keyboard() -> dict:
+def app_url(user_id: int | None = None) -> str:
+    """App URL with a signed session token for clients without initData."""
+    if not user_id:
+        return WEBAPP_URL
+    try:
+        token = payments.create_session_token(int(user_id))
+    except payments.PaymentStorageError as exc:
+        log(f"[bot] session token: {exc}")
+        return WEBAPP_URL
+    separator = "&" if "?" in WEBAPP_URL else "?"
+    return f"{WEBAPP_URL}{separator}auth={urllib.parse.quote(token, safe='')}"
+
+
+def webapp_keyboard(user_id: int | None = None) -> dict:
     return {
         "inline_keyboard": [[
-            {"text": "⭐ Открыть KAZ", "web_app": {"url": WEBAPP_URL}}
+            {"text": "⭐ Открыть KAZ", "web_app": {"url": app_url(user_id)}}
         ]]
     }
 
 
-def url_keyboard() -> dict:
+def url_keyboard(user_id: int | None = None) -> dict:
     return {
         "inline_keyboard": [[
-            {"text": "⭐ Открыть KAZ", "url": WEBAPP_URL}
+            {"text": "⭐ Открыть KAZ", "url": app_url(user_id)}
         ]]
     }
 
 
-def open_keyboard(chat_type: str = "private") -> dict:
+def open_keyboard(chat_type: str = "private", user_id: int | None = None) -> dict:
     # Inline web_app buttons are supported in private chats. In groups (and
     # without HTTPS) use a normal URL button so /start still works.
     if chat_type == "private" and can_use_webapp():
-        return webapp_keyboard()
-    return url_keyboard()
+        return webapp_keyboard(user_id)
+    return url_keyboard(user_id)
+
+
+def _url_fallback(keyboard: dict) -> dict:
+    """Turn web_app buttons into normal URL buttons without losing the token."""
+    for row in keyboard.get("inline_keyboard", []):
+        for button in row:
+            web_app = button.pop("web_app", None)
+            if web_app and web_app.get("url"):
+                button["url"] = web_app["url"]
+    return keyboard
 
 
 def send_message(chat_id: int, text: str, keyboard: dict | None = None) -> None:
@@ -191,7 +214,7 @@ def send_message(chat_id: int, text: str, keyboard: dict | None = None) -> None:
         # If web_app buttons are not supported by the current API build,
         # fall back to a normal URL button instead of losing the message.
         if keyboard and "web_app" in json.dumps(keyboard):
-            payload["reply_markup"] = url_keyboard()
+            payload["reply_markup"] = _url_fallback(keyboard)
             api("sendMessage", payload)
         else:
             raise exc
@@ -372,7 +395,7 @@ def handle_successful_payment(message: dict, chat_id: int) -> None:
         chat_id,
         f"✅ Оплата получена: <b>+{amount} ★</b>.\n"
         "Откройте KAZ — баланс обновится автоматически.",
-        webapp_keyboard() if can_use_webapp() else None,
+        webapp_keyboard(user_id) if can_use_webapp() else None,
     )
 
     for admin_id in ADMIN_IDS:
@@ -641,7 +664,11 @@ def handle_update(update: dict) -> None:
                 log(f"[bot] start topup payload={start_payload} chat={chat_id}")
                 handle_topup_request(message, chat_id, {"amount": start_payload[6:]})
                 return
-        send_message(chat_id, WELCOME, open_keyboard(chat_type))
+        send_message(
+            chat_id,
+            WELCOME,
+            open_keyboard(chat_type, (message.get("from") or {}).get("id")),
+        )
     elif command == "/buy":
         handle_buy_command(chat_id, text)
     elif command == "/stars":

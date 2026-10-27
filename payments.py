@@ -7,9 +7,11 @@ user whose signed initData is sent to /api/purchases.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
+import os
 import re
 import time
 import urllib.parse
@@ -18,6 +20,7 @@ from typing import Any
 PURCHASE_PREFIX = "kaz/purchases"
 MAX_PURCHASES = 20
 INIT_DATA_MAX_AGE = 7 * 24 * 60 * 60
+SESSION_TTL = 30 * 24 * 60 * 60
 MIN_TOPUP = 1
 MAX_TOPUP = 1_000_000
 DEFAULT_TOPUP = 500
@@ -171,3 +174,66 @@ def validate_init_data(init_data: str, bot_token: str) -> dict | None:
     if user_id <= 0:
         return None
     return user
+
+
+def _session_secret() -> bytes:
+    secret = (
+        os.environ.get("SESSION_SECRET")
+        or os.environ.get("WEBHOOK_SECRET")
+        or os.environ.get("BOT_TOKEN")
+        or ""
+    ).strip()
+    return secret.encode("utf-8")
+
+
+def create_session_token(user_id: int, ttl: int = SESSION_TTL) -> str:
+    """Create a signed bearer token for clients without Telegram initData."""
+    secret = _session_secret()
+    if not secret:
+        raise PaymentStorageError("session secret is not configured")
+    payload = json.dumps(
+        {"uid": int(user_id), "exp": int(time.time()) + int(ttl)},
+        separators=(",", ":"),
+    ).encode("utf-8")
+    body = base64.urlsafe_b64encode(payload).rstrip(b"=").decode("ascii")
+    signature = hmac.new(secret, body.encode("ascii"), hashlib.sha256).hexdigest()
+    return f"{body}.{signature}"
+
+
+def validate_session_token(token: str) -> int | None:
+    """Return the user id from a signed session token, or None."""
+    if not isinstance(token, str):
+        return None
+    token = token.strip()
+    if not token or len(token) > 512 or token.count(".") != 1:
+        return None
+    secret = _session_secret()
+    if not secret:
+        return None
+    body, received = token.split(".", 1)
+    expected = hmac.new(secret, body.encode("ascii"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, received):
+        return None
+    try:
+        padded = body + "=" * (-len(body) % 4)
+        data = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+        user_id = int(data.get("uid", 0))
+        expires = int(data.get("exp", 0))
+    except (TypeError, ValueError, KeyError, json.JSONDecodeError):
+        return None
+    if user_id <= 0 or expires < int(time.time()):
+        return None
+    return user_id
+
+
+def resolve_user_id(init_data: str, token: str, bot_token: str) -> int | None:
+    """Prefer signed initData, then fall back to a signed session token."""
+    user = validate_init_data(init_data, bot_token)
+    if user:
+        try:
+            user_id = int(user["id"])
+        except (KeyError, TypeError, ValueError):
+            user_id = 0
+        if user_id > 0:
+            return user_id
+    return validate_session_token(token)

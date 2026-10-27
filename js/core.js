@@ -869,8 +869,49 @@
     return false;
   }
 
+  const AUTH_KEY = "kaz_auth_token";
+
+  function sessionToken() {
+    let token = "";
+    try {
+      token = new URLSearchParams(window.location.search).get("auth") || "";
+    } catch (error) {
+      token = "";
+    }
+    if (!token && window.location.hash) {
+      const match = window.location.hash.match(/[?&#]auth=([^&]+)/);
+      if (match) {
+        try { token = decodeURIComponent(match[1]); } catch (error) { token = ""; }
+      }
+    }
+    try {
+      if (token) {
+        sessionStorage.setItem(AUTH_KEY, token);
+        localStorage.setItem(AUTH_KEY, token);
+      } else {
+        token = sessionStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY) || "";
+      }
+    } catch (error) {
+      /* Storage can be blocked; the token from the URL is still used. */
+    }
+    return token.slice(0, 512);
+  }
+
+  function authBody(extra) {
+    const body = Object.assign({}, extra);
+    const initData = telegram && telegram.initData ? telegram.initData : "";
+    if (initData) body.initData = initData;
+    const token = sessionToken();
+    if (token) body.token = token;
+    return body;
+  }
+
+  function hasAuth() {
+    return Boolean((telegram && telegram.initData) || sessionToken());
+  }
+
   async function requestInvoice(amount) {
-    if (!telegram || !telegram.initData) return false;
+    if (!hasAuth()) return false;
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 10000);
     try {
@@ -880,7 +921,7 @@
         cache: "no-store",
         credentials: "same-origin",
         signal: controller.signal,
-        body: JSON.stringify({ initData: telegram.initData, amount })
+        body: JSON.stringify(authBody({ amount }))
       });
       if (!response.ok) return false;
       const payload = await response.json();
@@ -1004,7 +1045,7 @@
   let lastPurchaseSync = 0;
 
   async function syncPurchases(force = false) {
-    if (!telegram || !telegram.initData) return 0;
+    if (!hasAuth()) return 0;
     if (purchaseSyncPromise) return purchaseSyncPromise;
     if (!force && Date.now() - lastPurchaseSync < 3000) return 0;
     lastPurchaseSync = Date.now();
@@ -1019,7 +1060,7 @@
           cache: "no-store",
           credentials: "same-origin",
           signal: controller.signal,
-          body: JSON.stringify({ initData: telegram.initData })
+          body: JSON.stringify(authBody({}))
         });
         if (!response.ok) return 0;
         const payload = await response.json();

@@ -60,15 +60,13 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": "invalid_json"})
             return
 
-        init_data = payload.get("initData") if isinstance(payload, dict) else ""
-        user = payments.validate_init_data(init_data, bot.BOT_TOKEN)
-        if not user:
-            self._send_json(401, {"ok": False, "error": "unauthorized"})
-            return
-
-        try:
-            user_id = int(user["id"])
-        except (KeyError, TypeError, ValueError):
+        data = payload if isinstance(payload, dict) else {}
+        init_data = data.get("initData") or ""
+        token = data.get("token") or ""
+        user_id = payments.resolve_user_id(
+            str(init_data), str(token), bot.BOT_TOKEN
+        )
+        if not user_id:
             self._send_json(401, {"ok": False, "error": "unauthorized"})
             return
 
