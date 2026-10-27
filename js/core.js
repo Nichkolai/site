@@ -831,6 +831,27 @@
     }
   }
 
+  function tryOpenTopupLink(url) {
+    if (!telegram) return false;
+    if (typeof telegram.openTelegramLink === "function") {
+      try {
+        telegram.openTelegramLink(url);
+        return true;
+      } catch (error) {
+        /* Fall through to the generic link API. */
+      }
+    }
+    if (typeof telegram.openLink === "function") {
+      try {
+        telegram.openLink(url);
+        return true;
+      } catch (error) {
+        /* Fall through to sendData/browser link. */
+      }
+    }
+    return false;
+  }
+
   function submitTopup() {
     const input = document.getElementById("topupAmount");
     const amount = Math.round(safeNumber(input && input.value));
@@ -862,15 +883,10 @@
 
     // A direct bot deep link is more reliable than sendData in some
     // Telegram-compatible clients: /start topup_<amount> creates the invoice.
-    if (typeof telegram.openTelegramLink === "function") {
-      try {
-        telegram.openTelegramLink(startUrl);
-        toast("Счёт в чате", "Откройте чат с ботом — счёт уже там.", "info");
-        window.setTimeout(resetButton, 4000);
-        return;
-      } catch (error) {
-        /* Fall through to sendData. */
-      }
+    if (tryOpenTopupLink(startUrl)) {
+      toast("Счёт в чате", "Откройте чат с ботом — счёт уже там.", "info");
+      window.setTimeout(resetButton, 4000);
+      return;
     }
 
     if (typeof telegram.sendData === "function") {
@@ -906,14 +922,9 @@
       return;
     }
     const startUrl = `${BOT_LINK}?start=topup_${amount}`;
-    if (telegram && typeof telegram.openTelegramLink === "function") {
-      try {
-        telegram.openTelegramLink(startUrl);
-        closeModal("modalTopup");
-        return;
-      } catch (error) {
-        /* Use the browser fallback below. */
-      }
+    if (tryOpenTopupLink(startUrl)) {
+      closeModal("modalTopup");
+      return;
     }
     try {
       window.open(startUrl, "_blank");
