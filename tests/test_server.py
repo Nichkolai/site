@@ -419,6 +419,51 @@ class PurchaseListingTests(unittest.TestCase):
         self.assertEqual([r["key"] for r in payments.purchases_excluding(self.UID, set())], ["mine"])
 
 
+class SessionSecretTests(unittest.TestCase):
+    def env(self, **values):
+        import os
+        from unittest import mock
+        base = {"SESSION_SECRET": "", "WEBHOOK_SECRET": "", "BOT_TOKEN": "", "SESSION_REJECT_LEGACY": ""}
+        base.update(values)
+        return mock.patch.dict(os.environ, base)
+
+    def test_new_tokens_use_the_dedicated_secret(self):
+        with self.env(SESSION_SECRET="dedicated", WEBHOOK_SECRET="hook", BOT_TOKEN="bot"):
+            token = payments.create_session_token(42)
+            self.assertEqual(payments.validate_session_token(token), 42)
+        with self.env(WEBHOOK_SECRET="hook", BOT_TOKEN="bot"):
+            self.assertIsNone(payments.validate_session_token(token))
+
+    def test_legacy_tokens_stay_valid_after_setting_the_secret(self):
+        with self.env(WEBHOOK_SECRET="hook", BOT_TOKEN="bot"):
+            legacy = payments.create_session_token(7)
+        with self.env(SESSION_SECRET="dedicated", WEBHOOK_SECRET="hook", BOT_TOKEN="bot"):
+            self.assertEqual(payments.validate_session_token(legacy), 7)
+        with self.env(SESSION_SECRET="dedicated", WEBHOOK_SECRET="hook", BOT_TOKEN="bot",
+                      SESSION_REJECT_LEGACY="1"):
+            self.assertIsNone(payments.validate_session_token(legacy))
+
+    def test_legacy_rejection_needs_a_dedicated_secret(self):
+        with self.env(WEBHOOK_SECRET="hook", SESSION_REJECT_LEGACY="1"):
+            token = payments.create_session_token(9)
+            self.assertEqual(payments.validate_session_token(token), 9)
+
+    def test_tampered_and_malformed_tokens_are_rejected(self):
+        with self.env(SESSION_SECRET="dedicated"):
+            token = payments.create_session_token(5)
+            body, sig = token.split(".")
+            self.assertIsNone(payments.validate_session_token(body + "." + "0" * len(sig)))
+            self.assertIsNone(payments.validate_session_token(body + ".\u043f\u043e\u0434\u043f\u0438\u0441\u044c"))
+            self.assertIsNone(payments.validate_session_token("\u0442\u043e\u043a\u0435\u043d." + sig))
+            self.assertIsNone(payments.validate_session_token(""))
+
+    def test_no_secret_means_no_tokens(self):
+        with self.env():
+            with self.assertRaises(payments.PaymentStorageError):
+                payments.create_session_token(1)
+            self.assertIsNone(payments.validate_session_token("a.b"))
+
+
 class WebhookAuthTests(unittest.TestCase):
     def setUp(self):
         import os

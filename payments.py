@@ -254,14 +254,31 @@ def validate_init_data(init_data: str, bot_token: str) -> dict | None:
     return user
 
 
+def _env_secret(name: str) -> bytes:
+    return os.environ.get(name, "").strip().encode("utf-8")
+
+
 def _session_secret() -> bytes:
-    secret = (
-        os.environ.get("SESSION_SECRET")
-        or os.environ.get("WEBHOOK_SECRET")
-        or os.environ.get("BOT_TOKEN")
-        or ""
-    ).strip()
-    return secret.encode("utf-8")
+    """Key used to sign new session tokens: SESSION_SECRET, else a legacy key."""
+    return next((s for s in _signing_secrets() if s), b"")
+
+
+def _signing_secrets() -> list[bytes]:
+    """Keys a token may be signed with, preferred first.
+
+    SESSION_SECRET is a dedicated key. WEBHOOK_SECRET and BOT_TOKEN are the keys
+    tokens were signed with before it existed; they stay accepted so setting
+    SESSION_SECRET does not log anyone out. Set SESSION_REJECT_LEGACY=1 once old
+    tokens have expired (SESSION_TTL) to stop accepting them.
+    """
+    keys = [_env_secret("SESSION_SECRET")]
+    if os.environ.get("SESSION_REJECT_LEGACY", "").strip() != "1" or not keys[0]:
+        keys += [_env_secret("WEBHOOK_SECRET"), _env_secret("BOT_TOKEN")]
+    unique: list[bytes] = []
+    for key in keys:
+        if key and key not in unique:
+            unique.append(key)
+    return unique
 
 
 def create_session_token(user_id: int, ttl: int = SESSION_TTL) -> str:
@@ -285,12 +302,18 @@ def validate_session_token(token: str) -> int | None:
     token = token.strip()
     if not token or len(token) > 512 or token.count(".") != 1:
         return None
-    secret = _session_secret()
-    if not secret:
-        return None
     body, received = token.split(".", 1)
-    expected = hmac.new(secret, body.encode("ascii"), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expected, received):
+    try:
+        body_bytes, received_bytes = body.encode("ascii"), received.encode("ascii")
+    except UnicodeEncodeError:
+        return None
+    if not any(
+        hmac.compare_digest(
+            hmac.new(secret, body_bytes, hashlib.sha256).hexdigest().encode("ascii"),
+            received_bytes,
+        )
+        for secret in _signing_secrets()
+    ):
         return None
     try:
         padded = body + "=" * (-len(body) % 4)

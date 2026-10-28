@@ -145,6 +145,7 @@ vercel.json
 | `WEBAPP_URL` | Config | `https://site-ten-sepia-56.vercel.app` |
 | `SHUZA_API_BASE` | Config | `https://api.shuzagram.com` |
 | `WEBHOOK_SECRET` | Secret | случайная строка, **обязательна**: проверяется в `X-Telegram-Bot-Api-Secret-Token`, без неё webhook отвечает 503 |
+| `SESSION_SECRET` | Secret | отдельный ключ подписи сессионных токенов (случайная строка). Без него используются `WEBHOOK_SECRET`/`BOT_TOKEN`. Старые токены остаются валидными; `SESSION_REJECT_LEGACY=1` отключает их через 30 дней после задания ключа |
 | `BLOB_STORE_ID` | Config | добавляется автоматически при подключении Blob-хранилища `kaz-payments` |
 | `VERCEL_OIDC_TOKEN` | Runtime | выдаётся Vercel автоматически; используется Python SDK `vercel-blob` |
 
