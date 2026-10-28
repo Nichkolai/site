@@ -911,10 +911,3 @@ body.is-game .game-head { display: none; }
   .up-result.lose { animation: none; }
 }
 
-/* Honest-odds list */
-.fair-list { display: grid; gap: 8px; margin: 14px 0 6px; padding: 0; list-style: none; text-align: left; }
-.fair-list li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.04); }
-.fair-list strong { font-size: 13px; font-weight: 800; }
-.fair-list span { color: var(--gold, #f5c451); font-size: 12px; font-weight: 800; white-space: nowrap; }
-.fair-list small { grid-column: 1 / -1; color: var(--muted); font-size: 11px; line-height: 1.45; }
-#modalFair .modal-card { max-height: 88vh; overflow-y: auto; }

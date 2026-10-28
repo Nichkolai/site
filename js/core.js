@@ -1313,7 +1313,6 @@
         if (action.dataset.action === "daily-claim") claimDaily();
         if (action.dataset.action === "topup") openTopup();
         if (action.dataset.action === "withdraw") openWithdraw();
-        if (action.dataset.action === "fair") openModal("modalFair");
         return;
       }
     });

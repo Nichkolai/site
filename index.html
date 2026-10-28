@@ -10,7 +10,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2307110b'/%3E%3Cpath d='M32 10l5.6 11.4 12.6 1.8-9.1 8.9 2.1 12.5L32 38.7 20.8 44.6l2.1-12.5-9.1-8.9 12.6-1.8L32 10z' fill='%23c8f169'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css?v=ba4043fa">
   <link rel="stylesheet" href="games.css?v=78df1e09">
-  <link rel="stylesheet" href="theme.css?v=4b56c575">
+  <link rel="stylesheet" href="theme.css?v=0af4f0eb">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -153,12 +153,6 @@
         <button class="daily-card" type="button" data-action="daily">
           <span class="daily-icon"><svg class="icon"><use href="#i-spark"></use></svg></span>
           <span class="daily-copy"><strong>Ежедневный бонус</strong><small>+10 звёзд каждый день</small></span>
-          <span class="daily-arrow"><svg class="icon"><use href="#i-arrow"></use></svg></span>
-        </button>
-
-        <button class="daily-card" type="button" data-action="fair">
-          <span class="daily-icon"><svg class="icon"><use href="#i-star"></use></svg></span>
-          <span class="daily-copy"><strong>Честная игра</strong><small>Шансы и возврат игрокам по каждой игре</small></span>
           <span class="daily-arrow"><svg class="icon"><use href="#i-arrow"></use></svg></span>
         </button>
 
@@ -551,26 +545,6 @@
     </div>
   </div>
 
-  <div class="modal" id="modalFair" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="fairModalTitle">
-    <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-card">
-      <button class="modal-close" type="button" data-close-modal aria-label="Закрыть"><svg class="icon"><use href="#i-close"></use></svg></button>
-      <span class="modal-star"><svg class="icon"><use href="#i-star"></use></svg></span>
-      <span class="modal-kicker">Правила</span>
-      <h2 id="fairModalTitle">Честная игра</h2>
-      <p>Баланс и все игры считает сервер. Результат выбирает генератор случайных чисел, шансы не меняются в ходе игры и совпадают с теми, что показаны в игре. RTP — какая доля ставок в среднем возвращается игрокам.</p>
-      <ul class="fair-list">
-        <li><strong>Слоты</strong><span>RTP ≈ 86%</span><small>Символы выпадают с разной частотой: вишня 30%, лимон 23%, колокол 19%, звезда 13%, семёрка 9%, алмаз 6%.</small></li>
-        <li><strong>Блэкджек</strong><span>блэкджек 6:5</span><small>Новая колода на каждую раздачу, дилер берёт до 17 и добирает на мягких 17. Карты не подменяются.</small></li>
-        <li><strong>Рулетка</strong><span>RTP ≈ 94,7%</span><small>38 равновероятных лунок (0 и 00 тоже). Выплата со ставкой: число ×36, дюжина ×3, цвет и чёт/нечёт ×2.</small></li>
-        <li><strong>Мины</strong><span>RTP ≈ 92%</span><small>5 мин на 25 клеток, расставляются в начале раунда. Множитель уже учитывает 8% казино.</small></li>
-        <li><strong>Краш</strong><span>RTP ≈ 84%</span><small>Точка краша выбирается в начале раунда: шанс дойти до ×X равен 84 ÷ X, максимум ×50.</small></li>
-        <li><strong>Апгрейд</strong><span>RTP = 93%</span><small>Шанс на колесе равен 93 ÷ множитель и это реальный шанс выигрыша.</small></li>
-      </ul>
-      <span class="modal-footnote">Игра на звёзды связана с риском потерь. Играйте только на те суммы, которые готовы потерять.</span>
-    </div>
-  </div>
-
   <div class="modal" id="modalTopup" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="topupModalTitle">
     <div class="modal-backdrop" data-close-modal></div>
     <div class="modal-card">
@@ -635,7 +609,7 @@
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
   <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
-  <script src="js/core.js?v=5521831b"></script>
+  <script src="js/core.js?v=f3b5f86a"></script>
   <script src="js/slots.js?v=d7a2543f"></script>
   <script src="js/blackjack.js?v=4a79ca0c"></script>
   <script src="js/roulette.js?v=4e7016e7"></script>
