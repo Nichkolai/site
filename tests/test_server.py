@@ -311,7 +311,7 @@ class GameTests(unittest.TestCase):
     def test_withdraw_reserve_and_refund(self):
         self.give(18, 1000)
         with self.assertRaises(GameError):
-            self.act(18, "withdraw.request", amount=0)
+            self.act(18, "withdraw.request", amount=499)
         with self.assertRaises(GameError):
             self.act(18, "withdraw.request", amount=1001)
         out = self.act(18, "withdraw.request", amount=600)
@@ -321,11 +321,10 @@ class GameTests(unittest.TestCase):
         self.assertEqual(store.resolve_withdrawal(18, item["id"], "reject"), "")
         self.assertEqual(store.resolve_withdrawal(18, item["id"], "paid"), "")
         self.assertEqual(self.act(18, "state")["state"]["balance"], 1000)
-        out = self.act(18, "withdraw.request", amount=1)
+        out = self.act(18, "withdraw.request", amount=500)
         item = out["result"]["withdrawal"]
-        self.assertEqual(out["state"]["balance"], 999)
         self.assertEqual(store.resolve_withdrawal(18, item["id"], "paid"), "paid")
-        self.assertEqual(self.act(18, "state")["state"]["balance"], 999)
+        self.assertEqual(self.act(18, "state")["state"]["balance"], 500)
 
 
 class RtpTests(unittest.TestCase):

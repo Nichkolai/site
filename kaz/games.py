@@ -23,7 +23,7 @@ from .store import (
 
 MAX_BET = 1_000_000
 DAILY_BONUS = 10
-MIN_WITHDRAW = 1
+MIN_WITHDRAW = 500
 MSK_OFFSET = 3 * 3600  # daily bonus resets at midnight Moscow time
 
 _rng = secrets.SystemRandom()

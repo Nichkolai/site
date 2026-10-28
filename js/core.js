@@ -7,7 +7,7 @@
   const STORAGE_KEY = "kaz_ui_v2";
   const DEFAULT_BET = 50;
   const DAILY_BONUS = 10;
-  const MIN_WITHDRAW = 1;
+  const MIN_WITHDRAW = 500;
   const MIN_TOPUP = 1;
   const MAX_TOPUP = 1000000;
   const DEFAULT_TOPUP = 500;
