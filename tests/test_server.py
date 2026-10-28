@@ -368,5 +368,25 @@ class RtpTests(unittest.TestCase):
         self.assertAlmostEqual(tens / trials, 16 / 52, delta=0.01)
 
 
+class WebhookAuthTests(unittest.TestCase):
+    def setUp(self):
+        import os
+        os.environ.setdefault("BOT_TOKEN", "test-token")
+        from api import telegram
+        self.authorize = telegram.authorize
+
+    def test_refuses_everything_without_a_secret(self):
+        self.assertEqual(self.authorize("", ""), (503, "webhook_not_configured"))
+        self.assertEqual(self.authorize("anything", "   "), (503, "webhook_not_configured"))
+
+    def test_rejects_wrong_or_missing_header(self):
+        self.assertEqual(self.authorize("", "s3cret"), (403, "forbidden"))
+        self.assertEqual(self.authorize("nope", "s3cret"), (403, "forbidden"))
+
+    def test_accepts_matching_secret_including_non_ascii(self):
+        self.assertIsNone(self.authorize("s3cret", "s3cret"))
+        self.assertIsNone(self.authorize("пароль", " пароль "))
+
+
 if __name__ == "__main__":
     unittest.main()

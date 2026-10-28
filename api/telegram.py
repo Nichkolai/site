@@ -20,8 +20,23 @@ if str(ROOT) not in sys.path:
 
 import bot  # noqa: E402
 
-WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "").strip()
 MAX_BODY = 1_000_000
+
+
+def authorize(received: str, expected: str | None = None) -> tuple[int, str] | None:
+    """Check the webhook secret. Returns (status, error) to reject, or None to accept.
+
+    Fail closed: without a configured secret anybody could POST a forged update
+    (including a fake ``successful_payment``), so every request is refused.
+    """
+    if expected is None:
+        expected = os.environ.get("WEBHOOK_SECRET", "")
+    expected = expected.strip()
+    if not expected:
+        return 503, "webhook_not_configured"
+    if not hmac.compare_digest(received.encode("utf-8"), expected.encode("utf-8")):
+        return 403, "forbidden"
+    return None
 
 
 class handler(BaseHTTPRequestHandler):
@@ -53,11 +68,13 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(404, {"ok": False, "error": "not_found"})
             return
 
-        if WEBHOOK_SECRET:
-            received = self.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-            if not hmac.compare_digest(received, WEBHOOK_SECRET):
-                self._send_json(403, {"ok": False, "error": "forbidden"})
-                return
+        rejected = authorize(self.headers.get("X-Telegram-Bot-Api-Secret-Token", "") or "")
+        if rejected:
+            status, error = rejected
+            if status == 503:
+                print("[webhook] WEBHOOK_SECRET is not set: refusing all updates", flush=True)
+            self._send_json(status, {"ok": False, "error": error})
+            return
 
         try:
             length = int(self.headers.get("Content-Length", "0") or "0")

@@ -144,7 +144,7 @@ vercel.json
 | `ADMIN_IDS` | Config | ID администраторов через запятую |
 | `WEBAPP_URL` | Config | `https://site-ten-sepia-56.vercel.app` |
 | `SHUZA_API_BASE` | Config | `https://api.shuzagram.com` |
-| `WEBHOOK_SECRET` | Secret | случайная строка, проверяется в `X-Telegram-Bot-Api-Secret-Token` |
+| `WEBHOOK_SECRET` | Secret | случайная строка, **обязательна**: проверяется в `X-Telegram-Bot-Api-Secret-Token`, без неё webhook отвечает 503 |
 | `BLOB_STORE_ID` | Config | добавляется автоматически при подключении Blob-хранилища `kaz-payments` |
 | `VERCEL_OIDC_TOKEN` | Runtime | выдаётся Vercel автоматически; используется Python SDK `vercel-blob` |
 
