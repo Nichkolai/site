@@ -354,7 +354,7 @@
     if (!state.purchases.length) {
       const empty = document.createElement("p");
       empty.className = "empty-inline";
-      empty.textContent = "Пополнений пока нет. Баланс можно пополнить за Telegram Stars.";
+      empty.textContent = "Пополнений пока нет. Баланс можно пополнить за ShuzaGram Stars.";
       list.append(empty);
       return;
     }
@@ -366,7 +366,7 @@
         <span class="recent-icon topup">${iconMarkup("#i-plus")}</span>
         <div class="history-title">
           <strong>Пополнение +${formatStars(purchase.amount)} ★</strong>
-          <span>Telegram Stars · 1 ★ = 1 Star</span>
+          <span>ShuzaGram Stars · 1 ★ = 1 Star</span>
           <small>${escapeHtml(historyDate(purchase.at))}</small>
         </div>
         <span class="withdraw-status credited">Зачислено</span>
