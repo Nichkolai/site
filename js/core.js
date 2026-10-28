@@ -780,6 +780,7 @@
   }
 
   function openTopup() {
+    lastCreditAt = 0;
     const input = document.getElementById("topupAmount");
     if (input) input.value = String(DEFAULT_TOPUP);
     updateTopupUI();
@@ -854,9 +855,13 @@
   function authBody(extra) {
     const body = Object.assign({}, extra);
     const initData = telegram && telegram.initData ? telegram.initData : "";
-    if (initData) body.initData = initData;
-    const token = sessionToken();
-    if (token) body.token = token;
+    if (initData) {
+      // Валидный initData главнее: устаревший токен из хранилища не должен давать 401.
+      body.initData = initData;
+    } else {
+      const token = sessionToken();
+      if (token) body.token = token;
+    }
     return body;
   }
 
@@ -992,6 +997,12 @@
       closeModal("modalTopup");
       return;
     }
+    if (!lastSyncProblem && lastCreditAt > 0) {
+      // Платёж уже зачислен при возврате в приложение — не показываем «не найден».
+      closeModal("modalTopup");
+      toast("Баланс уже пополнен", `Сейчас на балансе ${formatStars(state.balance)} ★.`, "info");
+      return;
+    }
     const problems = {
       noauth: ["Не удалось определить аккаунт", "Откройте KAZ кнопкой «Открыть KAZ» из чата с ботом (команда /start) и нажмите проверку снова."],
       unauthorized: ["Сессия устарела", "Откройте KAZ заново кнопкой из чата с ботом (команда /start)."],
@@ -1029,6 +1040,7 @@
   let roundLocks = 0;
   let refreshPromise = null;
   let lastRefresh = 0;
+  let lastCreditAt = 0;
   let lastSyncProblem = "";
 
   /** Hold background refreshes while a round animation is still playing. */
@@ -1142,6 +1154,7 @@
         applyState(data.state);
         const credited = Math.max(0, Math.round(safeNumber(data.result && data.result.credited)));
         if (credited > 0) {
+          lastCreditAt = Date.now();
           sound("cash");
           haptic("success");
           toast("Баланс пополнен", `+${formatStars(credited)} ★ зачислено.`);
