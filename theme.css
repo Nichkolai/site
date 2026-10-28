@@ -721,29 +721,10 @@ body.is-game .game-head { display: none; }
   padding: 15px;
   border-radius: 50%;
 }
+/* Only the needle moves: the coloured wheel itself stays still. */
 .up-wheel.is-spinning .up-marker {
   transition: transform 1.05s cubic-bezier(0.12, 0.8, 0.2, 1);
   will-change: transform;
-}
-.up-wheel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: 50%;
-  pointer-events: none;
-  background: conic-gradient(
-    #c8f169 0 calc(var(--chance, 46.5) * 1%),
-    #1c3826 calc(var(--chance, 46.5) * 1%) 100%
-  );
-}
-@keyframes up-wheel-turn {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(720deg); }
-}
-.up-wheel.is-spinning::after {
-  will-change: transform;
-  animation: up-wheel-turn 1.05s cubic-bezier(0.12, 0.8, 0.2, 1);
 }
 .up-wheel-core {
   position: relative;
@@ -921,7 +902,6 @@ body.is-game .game-head { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .up-wheel.is-spinning .up-marker { transition-duration: 0.01ms; }
-  .up-wheel.is-spinning::after { animation: none; }
   .up-emoji,
   .up-wheel.is-spinning .up-emoji,
   .up-wheel.is-win .up-emoji,
