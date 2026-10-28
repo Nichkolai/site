@@ -24,6 +24,8 @@ class FakeNotFound(FakeBlobError):
 class FakeStore:
     def __init__(self):
         self.files = {}
+        self.uploaded = {}
+        self.clock = 0
         self.lock = threading.Lock()
 
 
@@ -32,6 +34,7 @@ def install_fake_blob(store):
         def __init__(self, pathname):
             self.pathname = pathname
             self.url = "https://fake/" + pathname
+            self.uploaded_at = store.uploaded.get(pathname, 0)
 
     class Got:
         def __init__(self, body):
@@ -43,6 +46,8 @@ def install_fake_blob(store):
             if path in store.files and not allow_overwrite:
                 raise FakeBlobError("This blob already exists", 400, "blob_already_exists")
             store.files[path] = bytes(data)
+            store.clock += 1
+            store.uploaded[path] = store.clock
 
     def get_blob(url, *, access):
         path = url.replace("https://fake/", "")
@@ -366,6 +371,52 @@ class RtpTests(unittest.TestCase):
             trials += 1
             tens += games._bj_points(card[0]) == 10
         self.assertAlmostEqual(tens / trials, 16 / 52, delta=0.01)
+
+
+class PurchaseListingTests(unittest.TestCase):
+    UID = 700
+
+    def setUp(self):
+        STORE.files.clear()
+        STORE.uploaded.clear()
+
+    def buy(self, charge_id, amount=10):
+        self.assertTrue(payments.save_purchase(
+            user_id=self.UID, amount=amount, currency="XTR",
+            charge_id=charge_id, payload="topup"))
+
+    def test_new_purchase_is_found_behind_a_long_credited_history(self):
+        old = [f"charge-{i:04d}" for i in range(250)]
+        for charge in old:
+            self.buy(charge)
+        self.buy("zzz-new")  # sorts after the old files in the listing
+        known = {payments._safe_part(c, "x") for c in old}
+        found = payments.purchases_excluding(self.UID, known)
+        self.assertEqual([r["key"] for r in found], ["zzz-new"])
+        self.assertEqual(found[0]["amount"], 10)
+
+    def test_backlog_is_credited_oldest_first_and_in_batches(self):
+        for i in range(payments.SYNC_LIMIT + 5):
+            self.buy(f"b{i:04d}")
+        first = payments.purchases_excluding(self.UID, set())
+        self.assertEqual(len(first), payments.SYNC_LIMIT)
+        self.assertNotIn("b%04d" % (payments.SYNC_LIMIT + 4), [r["key"] for r in first])
+        rest = payments.purchases_excluding(self.UID, {r["key"] for r in first})
+        self.assertEqual(len(rest), 5)
+
+    def test_recent_purchase_listed_even_with_a_long_history(self):
+        for i in range(130):
+            self.buy(f"charge-{i:04d}")
+        self.buy("zzz-latest")
+        listed = payments.list_purchases(self.UID)
+        self.assertEqual(len(listed), payments.MAX_PURCHASES)
+        self.assertEqual(listed[0]["charge_id"], "zzz-latest")
+
+    def test_other_users_files_are_ignored(self):
+        self.buy("mine")
+        payments.save_purchase(user_id=701, amount=99, currency="XTR",
+                               charge_id="theirs", payload="topup")
+        self.assertEqual([r["key"] for r in payments.purchases_excluding(self.UID, set())], ["mine"])
 
 
 class WebhookAuthTests(unittest.TestCase):

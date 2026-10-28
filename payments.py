@@ -15,10 +15,14 @@ import os
 import re
 import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 PURCHASE_PREFIX = "kaz/purchases"
 MAX_PURCHASES = 20
+LIST_WINDOW = 60  # newest files read for the purchase list
+SYNC_LIMIT = 200  # unseen files read per sync; any backlog is credited over several syncs
+READ_WORKERS = 8
 INIT_DATA_MAX_AGE = 7 * 24 * 60 * 60
 SESSION_TTL = 30 * 24 * 60 * 60
 MIN_TOPUP = 1
@@ -100,38 +104,75 @@ def save_purchase(
     return True
 
 
-def list_purchases(user_id: int) -> list[dict]:
-    """Return the latest verified purchases for one Telegram user."""
-    blob = _blob()
+def _uploaded_at(item: Any) -> float:
+    """Upload time of a listed blob as a sortable number (0 when unknown)."""
+    value = getattr(item, "uploaded_at", None)
+    if value is None:
+        return 0.0
+    try:
+        return float(value.timestamp()) if hasattr(value, "timestamp") else float(value)
+    except (TypeError, ValueError, OSError, OverflowError):
+        return 0.0
+
+
+def _list_items(blob: Any, user_id: int) -> list[Any]:
     prefix = f"{PURCHASE_PREFIX}/{_safe_part(user_id, 'unknown')}/"
     try:
-        items = list(blob.query_blobs(prefix=prefix, page_size=100))
+        return list(blob.query_blobs(prefix=prefix, page_size=100))
     except Exception as exc:  # noqa: BLE001
         raise PaymentStorageError(str(exc)) from exc
 
-    records: list[dict] = []
-    for item in items[:100]:
-        try:
-            downloaded = blob.get_blob(item.url, access="private")
-            record = json.loads(downloaded.body.decode("utf-8"))
-        except blob.BlobNotFoundError:
-            continue
-        except Exception as exc:  # noqa: BLE001 - one bad record must not break the rest
-            print(f"[payments] read {getattr(item, 'pathname', '?')}: {exc}", flush=True)
-            continue
+
+def _read_record(blob: Any, item: Any, user_id: int) -> dict | None:
+    """Download one purchase file; None when it is missing, broken or foreign."""
+    try:
+        downloaded = blob.get_blob(item.url, access="private")
+        record = json.loads(downloaded.body.decode("utf-8"))
+    except blob.BlobNotFoundError:
+        return None
+    except Exception as exc:  # noqa: BLE001 - one bad record must not break the rest
+        print(f"[payments] read {getattr(item, 'pathname', '?')}: {exc}", flush=True)
+        return None
+    try:
         if not isinstance(record, dict) or int(record.get("user_id", 0)) != int(user_id):
-            continue
+            return None
         amount = max(0, min(MAX_TOPUP, int(record.get("amount", 0))))
         charge_id = str(record.get("charge_id") or "")
-        if not amount or not charge_id:
-            continue
-        records.append({
-            "charge_id": charge_id,
-            "amount": amount,
-            "created_at": int(record.get("created_at", 0)),
-            "title": "Пополнение",
-        })
+        created_at = int(record.get("created_at", 0))
+    except (TypeError, ValueError):
+        return None
+    if not amount or not charge_id:
+        return None
+    return {"charge_id": charge_id, "amount": amount, "created_at": created_at}
 
+
+def _read_records(blob: Any, items: list[Any], user_id: int) -> list[tuple[Any, dict]]:
+    """Read purchase files concurrently (storage latency dominates), keeping order."""
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=min(READ_WORKERS, len(items))) as pool:
+        records = list(pool.map(lambda item: _read_record(blob, item, user_id), items))
+    return [(item, record) for item, record in zip(items, records) if record]
+
+
+def list_purchases(user_id: int) -> list[dict]:
+    """Return the latest verified purchases for one Telegram user."""
+    blob = _blob()
+    items = _list_items(blob, user_id)
+    # Newest uploads first, so a long history cannot push recent purchases out of
+    # the window. Listing order is alphabetical by charge id, not by time.
+    items.sort(key=_uploaded_at, reverse=True)
+    window = items[:LIST_WINDOW]
+
+    records = [
+        {
+            "charge_id": record["charge_id"],
+            "amount": record["amount"],
+            "created_at": record["created_at"],
+            "title": "Пополнение",
+        }
+        for _, record in _read_records(blob, window, user_id)
+    ]
     records.sort(key=lambda item: item["created_at"], reverse=True)
     return records[:MAX_PURCHASES]
 
@@ -140,42 +181,29 @@ def purchases_excluding(user_id: int, known: set[str]) -> list[dict]:
     """Verified purchases of one user whose key is not in ``known``.
 
     The key is the stored file name (the sanitized charge id), so already
-    credited purchases are skipped without downloading them again.
+    credited purchases are skipped without downloading them again. They are
+    dropped *before* the per-call limit is applied: a long history of credited
+    purchases must never hide a new one.
     """
     blob = _blob()
-    prefix = f"{PURCHASE_PREFIX}/{_safe_part(user_id, 'unknown')}/"
-    try:
-        items = list(blob.query_blobs(prefix=prefix, page_size=100))
-    except Exception as exc:  # noqa: BLE001
-        raise PaymentStorageError(str(exc)) from exc
-
-    found: list[dict] = []
-    for item in items[:200]:
+    pending: list[tuple[str, Any]] = []
+    for item in _list_items(blob, user_id):
         name = str(getattr(item, "pathname", "")).rsplit("/", 1)[-1]
         if not name.endswith(".json"):
             continue
         key = name[:-5]
-        if key in known:
-            continue
-        try:
-            downloaded = blob.get_blob(item.url, access="private")
-            record = json.loads(downloaded.body.decode("utf-8"))
-        except blob.BlobNotFoundError:
-            continue
-        except Exception as exc:  # noqa: BLE001
-            print(f"[payments] read {name}: {exc}", flush=True)
-            continue
-        if not isinstance(record, dict) or int(record.get("user_id", 0)) != int(user_id):
-            continue
-        amount = max(0, min(MAX_TOPUP, int(record.get("amount", 0))))
-        if not amount or not record.get("charge_id"):
-            continue
-        found.append({
-            "key": key,
-            "charge_id": str(record["charge_id"]),
-            "amount": amount,
-            "created_at": int(record.get("created_at", 0)),
-        })
+        if key not in known:
+            pending.append((key, item))
+
+    # Oldest first, so a backlog larger than the limit is credited in order.
+    pending.sort(key=lambda pair: (_uploaded_at(pair[1]), pair[0]))
+    pending = pending[:SYNC_LIMIT]
+
+    keys = {id(item): key for key, item in pending}
+    found = [
+        {"key": keys[id(item)], **record}
+        for item, record in _read_records(blob, [item for _, item in pending], user_id)
+    ]
     found.sort(key=lambda item: item["created_at"])
     return found
 
