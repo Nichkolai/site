@@ -18,7 +18,6 @@ from .store import (
     MAX_WITHDRAWALS,
     credit,
     debit,
-    now_ms,
     record_result,
 )
 

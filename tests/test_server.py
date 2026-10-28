@@ -246,7 +246,6 @@ class GameTests(unittest.TestCase):
     def test_mines_cashout_value(self):
         self.give(14, 1000)
         self.act(14, "mines.start", bet=100)
-        game = None
         doc = store.read_doc(14)
         safe = [i for i in range(25) if i not in doc["active"]["mines"]["mines"]]
         res = self.act(14, "mines.reveal", index=safe[0])["result"]
@@ -258,15 +257,17 @@ class GameTests(unittest.TestCase):
     def test_crash_cashout_and_expiry(self):
         self.give(15, 1000)
         self.act(15, "crash.start", bet=10)
-        doc = store.read_doc(15)
-        game = doc["active"]["crash"]
-        self.assertNotIn("crashAt", self.act(15, "state")["state"]["active"]["crash"])
-        # force a far crash point and an early cash-out
+        # pin a far crash point first: a random point near 1.00x would expire the round
+        # before the state check below and make this test flaky
         def force(d):
             d["active"]["crash"]["crashAt"] = 50.0
-            d["active"]["crash"]["startedAt"] -= 4000
             return None, True
         store.transact(15, force)
+        self.assertNotIn("crashAt", self.act(15, "state")["state"]["active"]["crash"])
+        def advance(d):
+            d["active"]["crash"]["startedAt"] -= 4000
+            return None, True
+        store.transact(15, advance)
         res = self.act(15, "crash.cashout")["result"]
         self.assertEqual(res["status"], "cashed")
         self.assertGreater(res["multiplier"], 2.4)
