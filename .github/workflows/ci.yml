@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Python tests
+        run: |
+          python -m pip install --upgrade pip pytest
+          python -m pytest -q tests
+      - name: Python syntax
+        run: python -m compileall -q api kaz bot.py payments.py tools
+      - name: JavaScript syntax
+        run: for f in js/*.js; do node --check "$f"; done
+      - name: Asset versions are stamped
+        run: python tools/stamp_assets.py --check
