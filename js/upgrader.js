@@ -90,7 +90,7 @@
     if (elements.emoji) elements.emoji.classList.remove("is-popping");
     if (elements.marker) {
       elements.marker.classList.remove("show");
-      elements.marker.style.setProperty("--marker-angle", "0deg");
+      elements.marker.style.transform = "rotate(0deg)";
     }
     if (!elements.result) return;
     elements.result.textContent = text;
@@ -206,13 +206,18 @@
     if (elements.marker) {
       const wheel = elements.zone;
       elements.marker.classList.remove("show");
-      elements.marker.style.setProperty("--marker-angle", "0deg");
+      elements.marker.style.transform = "rotate(0deg)";
       void elements.marker.offsetWidth;
       if (wheel) void wheel.offsetWidth;
       if (wheel) wheel.classList.add("is-spinning");
       elements.marker.classList.add("show");
-      // Two and a half turns before the pointer settles on the result.
-      elements.marker.style.setProperty("--marker-angle", `${900 + markerRoll * 360}deg`);
+      // Let the transition start from 0deg before the pointer moves.
+      void elements.marker.offsetWidth;
+      // Three full turns, then stop exactly on the rolled sector. The green
+      // part of the wheel starts at 0deg (the top), so the angle must be
+      // markerRoll * 360deg with no extra half turn, otherwise the pointer
+      // lands on the opposite side of the result.
+      elements.marker.style.transform = `rotate(${1080 + markerRoll * 360}deg)`;
     }
 
     window.setTimeout(() => {

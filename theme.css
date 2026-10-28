@@ -473,8 +473,8 @@ html, body { background: #07110b; color: #eef7ef; }
   padding: 15px 13px 14px;
 }
 .up-wheel {
+  /* Same starting angle as .up-wheel::after (0deg = top). */
   background: conic-gradient(
-    from -90deg,
     #c8f169 0 calc(var(--chance) * 1%),
     #1c3826 calc(var(--chance) * 1%) 100%
   );
@@ -712,7 +712,6 @@ body.is-game .game-head { display: none; }
 /* ---------- layout: upgrader wheel ---------- */
 .up-wheel {
   --chance: 46.5;
-  --marker-angle: 0deg;
   position: relative;
   display: grid;
   place-items: center;
@@ -827,7 +826,7 @@ body.is-game .game-head { display: none; }
   background: none;
   box-shadow: none;
   opacity: 1;
-  transform: rotate(var(--marker-angle));
+  transform: rotate(0deg);
   transform-origin: 50% 50%;
   transition: none;
   pointer-events: none;
