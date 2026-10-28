@@ -36,6 +36,7 @@ from pathlib import Path
 
 import payments
 from kaz import store as kaz_store
+import admin_panel
 
 # Windows consoles often default to cp1252/cp866; the bot prints Russian text.
 for _stream in (sys.stdout, sys.stderr):
@@ -710,6 +711,9 @@ def handle_update(update: dict) -> None:
 
     callback = update.get("callback_query")
     if callback:
+        # Admin panel buttons (callback_data starts with "adm:") are handled first.
+        if admin_panel.handle_callback(callback):
+            return
         handle_callback_query(callback)
         return
 
@@ -720,6 +724,11 @@ def handle_update(update: dict) -> None:
     chat = message.get("chat") or {}
     chat_id = chat.get("id")
     if not chat_id:
+        return
+
+    # Admin panel commands (/admin, /give, /take, /balance, /stats) and its
+    # step-by-step input. Returns False for everyone who is not an admin.
+    if admin_panel.handle_message(message):
         return
 
     if message.get("successful_payment"):
@@ -999,6 +1008,16 @@ def main() -> int:
 
 def _stop(signum, frame) -> None:
     raise KeyboardInterrupt
+
+
+# Admin panel: balance adjustments and statistics (see admin_panel.py).
+admin_panel.setup(
+    api=api,
+    send_message=send_message,
+    log=log,
+    api_error=BotAPIError,
+    admin_ids=ADMIN_IDS,
+)
 
 
 if __name__ == "__main__":
