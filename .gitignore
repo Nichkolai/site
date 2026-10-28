@@ -8,3 +8,6 @@ __pycache__/
 Thumbs.db
 
 .vercel
+.env
+.env.*
+!.env.example
