@@ -16,10 +16,6 @@
     .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
   const HOUSE_EDGE = 0.92;
   const MAX_MULTIPLIER = 250;
-  // Hidden safety reduction: occasionally a safe-looking cell turns into a
-  // mine, moving an unrevealed mine so the board still shows five.
-  const HIDDEN_MINE_CHANCE = 0.03;
-
   const game = {
     bet: startingBet,
     active: false,
@@ -181,7 +177,40 @@
     NP.sound("click");
   }
 
-  function startRound() {
+  function describeError(error) {
+    return error && error.message ? error.message : "Попробуйте ещё раз.";
+  }
+
+  function finishRound() {
+    game.active = false;
+    game.over = true;
+    revealMines();
+    updateUI();
+  }
+
+  /** Rebuild a round that is still running on the server (e.g. after a reload). */
+  function restoreFromServer() {
+    const saved = NP.getState().active && NP.getState().active.mines;
+    if (!saved || game.active || game.busy) return;
+    game.active = true;
+    game.over = false;
+    game.wager = saved.wager;
+    game.picks = saved.picks;
+    game.mines = new Set();
+    resetCells();
+    saved.revealed.forEach((index) => {
+      const cell = elements.grid.children[index];
+      if (cell) cell.classList.add("safe");
+    });
+    setStatus(
+      saved.picks > 0
+        ? `Открыто ${saved.picks}. Можно забрать ${NP.formatStars(saved.potential)} ★.`
+        : "Откройте звезду. Чем больше открыто, тем выше множитель."
+    );
+    updateUI();
+  }
+
+  async function startRound() {
     if (game.active || game.busy) return;
     if (NP.getState().balance < game.bet) {
       NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
@@ -189,19 +218,36 @@
       return;
     }
 
-    const pool = Array.from({ length: CELLS }, (_, index) => index);
-    for (let index = pool.length - 1; index > 0; index -= 1) {
-      const swap = NP.randomInt(index + 1);
-      [pool[index], pool[swap]] = [pool[swap], pool[index]];
+    game.busy = true;
+    updateUI();
+    const unlock = NP.lockSync();
+    NP.adjustBalance(-game.bet, { animate: true });
+
+    let data;
+    try {
+      data = await NP.api("mines.start", { bet: game.bet });
+    } catch (error) {
+      unlock();
+      game.busy = false;
+      await NP.refreshState(true);
+      if (error.code === "round_active") restoreFromServer();
+      else NP.toast("Раунд не начат", describeError(error), "error");
+      if (error.code === "insufficient_funds") NP.openModal("modalTopup");
+      updateUI();
+      return;
     }
-    game.mines = new Set(pool.slice(0, MINES));
+
+    // The server placed the mines; the app never learns where they are
+    // until the round is over.
+    game.mines = new Set();
     game.active = true;
     game.over = false;
     game.picks = 0;
-    game.wager = game.bet;
+    game.wager = data.result.wager;
     game.busy = false;
+    NP.applyState(data.state);
+    unlock();
 
-    NP.adjustBalance(-game.wager, { animate: true });
     NP.sound("click");
     NP.haptic("light");
     resetCells();
@@ -209,89 +255,97 @@
     updateUI();
   }
 
-  function finishRound(won) {
-    game.active = false;
-    game.over = true;
-    revealMines();
-    updateUI();
-  }
+  function showCashed(result, data, unlock) {
+    game.mines = new Set(result.mines);
+    game.picks = result.picks;
+    finishRound();
+    NP.applyState(data.state);
+    unlock();
 
-  function cashOut() {
-    if (!game.active || game.busy || game.picks === 0) return;
-    game.busy = true;
-    updateUI();
-
-    const payout = potentialPayout();
-    NP.adjustBalance(payout, { animate: true });
-    const net = payout - game.wager;
-    finishRound(true);
-
-    setStatus(`Забрали ${NP.formatStars(payout)} ★ · чистый ${net >= 0 ? "+" : "−"}${NP.formatStars(Math.abs(net))}`, "win");
+    const net = result.net;
+    setStatus(
+      `Забрали ${NP.formatStars(result.payout)} ★ · чистый ${net >= 0 ? "+" : "−"}${NP.formatStars(Math.abs(net))}`,
+      "win"
+    );
     NP.sound("cash");
     NP.haptic("success");
-    if (net >= game.wager * 3) NP.confetti(50);
-
-    NP.recordResult({
-      game: "mines",
-      title: "Мины",
-      detail: `Открыто ${game.picks} из 20`,
-      delta: net,
-      wager: game.wager
-    });
-
+    if (net >= result.wager * 3) NP.confetti(50);
     game.busy = false;
     updateUI();
   }
 
-  function revealCell(cell) {
+  async function cashOut() {
+    if (!game.active || game.busy || game.picks === 0) return;
+    game.busy = true;
+    updateUI();
+    const unlock = NP.lockSync();
+
+    let data;
+    try {
+      data = await NP.api("mines.cashout");
+    } catch (error) {
+      unlock();
+      game.busy = false;
+      NP.toast("Не удалось забрать выигрыш", describeError(error), "error");
+      await NP.refreshState(true);
+      updateUI();
+      return;
+    }
+    showCashed(data.result, data, unlock);
+  }
+
+  async function revealCell(cell) {
     if (!game.active || game.busy) return;
     const index = Number(cell.dataset.index);
     if (cell.classList.contains("safe") || cell.classList.contains("mine")) return;
 
-    if (!game.mines.has(index) && NP.randomFloat() < HIDDEN_MINE_CHANCE) {
-      const mineList = Array.from(game.mines).filter((mine) => mine !== index);
-      if (mineList.length) {
-        const moved = mineList[NP.randomInt(mineList.length)];
-        game.mines.delete(moved);
-        game.mines.add(index);
-      }
+    game.busy = true;
+    updateUI();
+    const unlock = NP.lockSync();
+
+    let data;
+    try {
+      data = await NP.api("mines.reveal", { index });
+    } catch (error) {
+      unlock();
+      game.busy = false;
+      NP.toast("Клетка не открыта", describeError(error), "error");
+      await NP.refreshState(true);
+      updateUI();
+      return;
     }
 
-    if (game.mines.has(index)) {
-      game.busy = true;
-      game.active = false;
+    const result = data.result;
+    if (result.status === "lost") {
+      game.mines = new Set(result.mines);
+      game.picks = result.picks;
       cell.classList.add("mine");
-      setStatus(`Мина! Потеряно ${NP.formatStars(game.wager)} ★`, "lose");
-      revealMines();
-      game.over = true;
+      setStatus(`Мина! Потеряно ${NP.formatStars(result.wager)} ★`, "lose");
+      finishRound();
+      NP.applyState(data.state);
+      unlock();
       NP.sound("lose");
       NP.haptic("error");
-
-      NP.recordResult({
-        game: "mines",
-        title: "Мины",
-        detail: `Мина после ${game.picks} ${game.picks === 1 ? "звезды" : "звёзд"}`,
-        delta: -game.wager,
-        wager: game.wager
-      });
-
       game.busy = false;
       updateUI();
       return;
     }
 
     cell.classList.add("safe");
-    game.picks += 1;
+    game.picks = result.picks;
     NP.sound("click");
     NP.haptic("light");
 
-    if (game.picks >= CELLS - MINES) {
+    if (result.status === "cashed") {
       setStatus("Все 20 звёзд открыты! Забираем максимум.");
-      cashOut();
+      showCashed(result, data, unlock);
       return;
     }
 
-    setStatus(`Открыто ${game.picks}. Можно забрать ${NP.formatStars(potentialPayout())} ★.`);
+    NP.applyState(data.state);
+    unlock();
+    setStatus(`Открыто ${result.picks}. Можно забрать ${NP.formatStars(result.potential)} ★.`);
+    game.busy = false;
     updateUI();
   }
 
@@ -327,10 +381,14 @@
     elements.betDouble?.addEventListener("click", doubleBet);
     elements.betMax?.addEventListener("click", maxBet);
     elements.action?.addEventListener("click", handleAction);
-    document.addEventListener("np:state", updateUI);
+    document.addEventListener("np:state", () => {
+      restoreFromServer();
+      updateUI();
+    });
     document.addEventListener("np:navigate", (event) => {
       if (event.detail.view === "mines") updateUI();
     });
+    restoreFromServer();
   }
 
   init();

@@ -35,6 +35,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import payments
+from kaz import store as kaz_store
 
 # Windows consoles often default to cp1252/cp866; the bot prints Russian text.
 for _stream in (sys.stdout, sys.stderr):
@@ -235,7 +236,7 @@ HELP = (
     "/stars — как работают звёзды\n"
     "/id — ваш ShuzaGram ID (для связи с администратором)\n"
     "/help — эта справка\n\n"
-    "Прогресс хранится локально в вашем браузере."
+    "Баланс и история хранятся на сервере и доступны на любом устройстве."
 )
 
 STARS = (
@@ -422,6 +423,12 @@ def handle_successful_payment(message: dict, chat_id: int) -> None:
         log(f"[bot] payment: duplicate charge {charge_id}")
         return
 
+    try:
+        kaz_store.sync_purchases(user_id)
+    except payments.PaymentStorageError as exc:
+        # The purchase is stored; the app credits it on the next sync.
+        log(f"[bot] payment credit deferred user={user_id}: {exc}")
+
     send_message(
         chat_id,
         f"✅ Оплата получена: <b>+{amount} ★</b>.\n"
@@ -471,6 +478,12 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
         return
     if data.get("type") != "withdraw":
         return
+    send_message(
+        chat_id,
+        "Заявки на вывод теперь создаются в приложении. "
+        "Обновите KAZ (закройте и откройте заново) и повторите.",
+    )
+    return
 
     try:
         amount = int(data.get("amount"))
@@ -579,6 +592,7 @@ def handle_callback_query(callback: dict) -> None:
 
     action = parts[1]
     player_id = parts[2] if len(parts) >= 3 else ""
+    withdrawal_id = parts[3] if len(parts) >= 4 else ""
 
     message = callback.get("message") or {}
     chat_id = (message.get("chat") or {}).get("id")
@@ -604,6 +618,31 @@ def handle_callback_query(callback: dict) -> None:
         except BotAPIError as exc:
             log(f"[bot] callback: {exc.description}")
         return
+
+    if withdrawal_id and player_id.lstrip("-").isdigit():
+        try:
+            outcome = kaz_store.resolve_withdrawal(int(player_id), withdrawal_id, action)
+        except payments.PaymentStorageError as exc:
+            log(f"[bot] withdrawal {withdrawal_id}: {exc}")
+            try:
+                api("answerCallbackQuery", {
+                    "callback_query_id": callback_id,
+                    "text": "Хранилище недоступно, попробуйте ещё раз.",
+                    "show_alert": True,
+                })
+            except BotAPIError as answer_exc:
+                log(f"[bot] callback: {answer_exc.description}")
+            return
+        if not outcome:
+            try:
+                api("answerCallbackQuery", {
+                    "callback_query_id": callback_id,
+                    "text": "Заявка уже обработана или не найдена.",
+                    "show_alert": True,
+                })
+            except BotAPIError as exc:
+                log(f"[bot] callback: {exc.description}")
+            return
 
     username = user.get("username")
     full_name = " ".join(
@@ -647,7 +686,11 @@ def handle_callback_query(callback: dict) -> None:
             send_message(
                 int(player_id),
                 f"Ваша заявка на вывод: <b>{status}</b>.\n"
-                "Администратор обработал заявку.",
+                + (
+                    "Звёзды возвращены на баланс."
+                    if action == "reject" and withdrawal_id
+                    else "Администратор обработал заявку."
+                ),
             )
         except BotAPIError as exc:
             log(f"[bot] callback notify {player_id}: {exc.description}")

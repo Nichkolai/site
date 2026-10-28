@@ -12,8 +12,6 @@
   const startingBet = [...BET_STEPS]
     .reverse()
     .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
-  const HOUSE_EDGE = 0.84;
-  const MAX_CRASH = 50;
   const GROWTH = 0.22;
 
   const game = {
@@ -22,7 +20,9 @@
     wager: 0,
     crashAt: 1,
     startedAt: 0,
-    crashDuration: 0,
+    busy: false,
+    polling: false,
+    poller: null,
     timer: null,
     history: [],
     crashed: false
@@ -53,12 +53,6 @@
     return `${value.toFixed(2)}×`;
   }
 
-  function generateCrashPoint() {
-    const roll = NP.randomFloat();
-    const raw = HOUSE_EDGE / Math.max(0.0001, 1 - roll);
-    return Math.max(1, Math.min(MAX_CRASH, Math.round(raw * 100) / 100));
-  }
-
   function updateUI() {
     const running = game.phase === "running";
     const elapsed = running ? performance.now() - game.startedAt : 0;
@@ -74,7 +68,7 @@
     if (elements.betMax) elements.betMax.disabled = running || game.bet >= balance || balance < MIN_BET;
 
     if (elements.action) {
-      elements.action.disabled = false;
+      elements.action.disabled = game.busy;
       if (running) {
         elements.action.textContent = `Забрать ${NP.formatStars(Math.round(game.wager * value))} ★`;
       } else if (game.phase === "done") {
@@ -177,126 +171,215 @@
     });
   }
 
-  function startRound() {
-    if (game.phase === "running") return;
+  const POLL_MS = 350;
+
+  function describeError(error) {
+    return error && error.message ? error.message : "Попробуйте ещё раз.";
+  }
+
+  function stopTimers() {
+    window.clearInterval(game.timer);
+    window.clearInterval(game.poller);
+    game.timer = null;
+    game.poller = null;
+  }
+
+  function runTimers() {
+    window.clearInterval(game.timer);
+    window.clearInterval(game.poller);
+    game.timer = window.setInterval(tick, 40);
+    game.poller = window.setInterval(poll, POLL_MS);
+  }
+
+  /** Rebuild a round that is still running on the server (e.g. after a reload). */
+  function restoreFromServer() {
+    const saved = NP.getState().active && NP.getState().active.crash;
+    if (!saved || game.phase === "running" || game.busy) return;
+    game.phase = "running";
+    game.crashed = false;
+    game.wager = saved.wager;
+    game.startedAt = performance.now() - saved.elapsed;
+    if (elements.stage) elements.stage.classList.remove("crashed");
+    if (elements.status) elements.status.textContent = "Множитель растёт. Забирайте вовремя.";
+    drawChart(currentMultiplier(saved.elapsed), saved.elapsed);
+    updateUI();
+    runTimers();
+  }
+
+  async function startRound() {
+    if (game.phase === "running" || game.busy) return;
     if (NP.getState().balance < game.bet) {
       NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
       NP.openModal("modalTopup");
       return;
     }
 
-    game.phase = "running";
-    game.crashed = false;
-    game.wager = game.bet;
-    game.crashAt = generateCrashPoint();
-    game.startedAt = performance.now();
-    game.crashDuration = game.crashAt <= 1.01
-      ? 1
-      : (Math.log(game.crashAt) / GROWTH) * 1000;
-
-    NP.adjustBalance(-game.wager, { animate: true });
+    game.busy = true;
+    updateUI();
+    const unlock = NP.lockSync();
+    NP.adjustBalance(-game.bet, { animate: true });
     NP.sound("spin");
     NP.haptic("light");
+
+    // The server picks the crash point and keeps it secret until the round
+    // ends. The app only animates the growing multiplier.
+    const sent = performance.now();
+    let data;
+    try {
+      data = await NP.api("crash.start", { bet: game.bet });
+    } catch (error) {
+      unlock();
+      game.busy = false;
+      await NP.refreshState(true);
+      if (error.code === "round_active") restoreFromServer();
+      else NP.toast("Раунд не начат", describeError(error), "error");
+      if (error.code === "insufficient_funds") NP.openModal("modalTopup");
+      updateUI();
+      return;
+    }
+    const received = performance.now();
+
+    game.phase = "running";
+    game.crashed = false;
+    game.wager = data.result.wager;
+    // The round started on the server about half a round trip ago.
+    game.startedAt = received - (received - sent) / 2 - data.result.elapsed;
+    game.busy = false;
+    NP.applyState(data.state);
+    unlock();
+
     if (elements.status) elements.status.textContent = "Множитель растёт. Забирайте вовремя.";
+    if (elements.stage) elements.stage.classList.remove("crashed");
     drawChart(1, 0);
     updateUI();
-
-    window.clearInterval(game.timer);
-    game.timer = window.setInterval(tick, 40);
+    runTimers();
   }
 
   function tick() {
     if (game.phase !== "running") return;
     const elapsed = performance.now() - game.startedAt;
-    if (elapsed >= game.crashDuration) {
-      crash();
-      return;
-    }
     const value = currentMultiplier(elapsed);
     if (elements.multiplier) elements.multiplier.textContent = formatMultiplier(value);
-    if (elements.action) {
+    if (elements.action && !game.busy) {
       elements.action.textContent = `Забрать ${NP.formatStars(Math.round(game.wager * value))} ★`;
     }
     if (elements.stage) elements.stage.classList.toggle("hot", value >= 2);
-    drawChart(value, Math.min(elapsed, game.crashDuration));
+    drawChart(value, elapsed);
   }
 
-  function stopTimer() {
-    window.clearInterval(game.timer);
-    game.timer = null;
+  /** Ask the server whether the round has crashed yet. */
+  async function poll() {
+    if (game.phase !== "running" || game.polling || game.busy) return;
+    game.polling = true;
+    const sent = performance.now();
+    let data;
+    try {
+      data = await NP.api("crash.poll");
+    } catch (error) {
+      game.polling = false;
+      if (error.code === "no_round" && game.phase === "running") await roundEndedElsewhere();
+      return;
+    }
+    game.polling = false;
+    if (game.phase !== "running" || game.busy) return;
+
+    const result = data.result;
+    if (result.status === "crashed") {
+      showCrash(result, data);
+      return;
+    }
+    // Keep the local clock close to the server clock.
+    const received = performance.now();
+    const serverStart = received - (received - sent) / 2 - result.elapsed;
+    if (Math.abs(serverStart - game.startedAt) > 150) game.startedAt = serverStart;
   }
 
-  function crash() {
-    if (game.phase !== "running") return;
-    stopTimer();
+  async function roundEndedElsewhere() {
+    stopTimers();
     game.phase = "done";
     game.crashed = true;
-    const value = game.crashAt;
+    await NP.refreshState(true);
+    if (elements.status) elements.status.textContent = "Раунд завершён · результат в истории";
+    updateUI();
+  }
+
+  function showCrash(result, data) {
+    stopTimers();
+    game.phase = "done";
+    game.crashed = true;
+    game.crashAt = result.crashAt;
+    const value = result.crashAt;
+    const duration = Math.log(Math.max(1.0001, value)) / GROWTH * 1000;
 
     if (elements.multiplier) elements.multiplier.textContent = formatMultiplier(value);
-    if (elements.status) elements.status.textContent = `Краш на ${formatMultiplier(value)} · −${NP.formatStars(game.wager)} ★`;
+    if (elements.status) elements.status.textContent = `Краш на ${formatMultiplier(value)} · −${NP.formatStars(result.wager)} ★`;
     if (elements.stage) {
       elements.stage.classList.remove("hot");
       elements.stage.classList.add("crashed");
     }
-    drawChart(value, game.crashDuration, true);
+    drawChart(value, duration, true);
 
     game.history.unshift(value);
     game.history = game.history.slice(0, 10);
     renderHistory();
-
-    NP.recordResult({
-      game: "crash",
-      title: "Краш",
-      detail: `На ${formatMultiplier(value)}`,
-      delta: -game.wager,
-      wager: game.wager
-    });
+    NP.applyState(data.state);
 
     NP.sound("lose");
     NP.haptic("error");
     updateUI();
   }
 
-  function cashOut(auto = false) {
-    if (game.phase !== "running") return;
-    const elapsed = performance.now() - game.startedAt;
-    if (elapsed >= game.crashDuration) {
-      crash();
+  async function cashOut(auto = false) {
+    if (game.phase !== "running" || game.busy) return;
+    game.busy = true;
+    if (elements.action) elements.action.disabled = true;
+    const unlock = NP.lockSync();
+
+    let data;
+    try {
+      data = await NP.api("crash.cashout");
+    } catch (error) {
+      unlock();
+      game.busy = false;
+      if (error.code === "no_round") await roundEndedElsewhere();
+      else {
+        NP.toast("Не удалось забрать", describeError(error), "error");
+        updateUI();
+      }
       return;
     }
 
-    stopTimer();
-    const value = currentMultiplier(elapsed);
-    const payout = Math.round(game.wager * value);
-    const net = payout - game.wager;
+    const result = data.result;
+    game.busy = false;
+    if (result.status === "crashed") {
+      unlock();
+      showCrash(result, data);
+      return;
+    }
+
+    stopTimers();
+    const value = result.multiplier;
+    const net = result.net;
     game.phase = "done";
     game.crashed = false;
     game.crashAt = value;
 
-    NP.adjustBalance(payout, { animate: true });
     if (elements.multiplier) elements.multiplier.textContent = formatMultiplier(value);
     if (elements.status) {
-      elements.status.textContent = `${auto ? "Авто-забрали" : "Забрали"} ${NP.formatStars(payout)} ★ · ${net >= 0 ? "+" : "−"}${NP.formatStars(Math.abs(net))}`;
+      elements.status.textContent = `${auto ? "Авто-забрали" : "Забрали"} ${NP.formatStars(result.payout)} ★ · ${net >= 0 ? "+" : "−"}${NP.formatStars(Math.abs(net))}`;
     }
     if (elements.stage) elements.stage.classList.remove("hot");
-    drawChart(value, elapsed);
+    drawChart(value, Math.log(Math.max(1.0001, value)) / GROWTH * 1000);
 
     game.history.unshift(value);
     game.history = game.history.slice(0, 10);
     renderHistory();
-
-    NP.recordResult({
-      game: "crash",
-      title: "Краш",
-      detail: `Забрали на ${formatMultiplier(value)}`,
-      delta: net,
-      wager: game.wager
-    });
+    NP.applyState(data.state);
+    unlock();
 
     NP.sound("cash");
     NP.haptic("success");
-    if (net >= game.wager * 3) NP.confetti(45);
+    if (net >= result.wager * 3) NP.confetti(45);
     updateUI();
   }
 
@@ -387,10 +470,14 @@
       }
     });
 
-    document.addEventListener("np:state", updateUI);
+    document.addEventListener("np:state", () => {
+      restoreFromServer();
+      updateUI();
+    });
     document.addEventListener("np:navigate", (event) => {
       if (event.detail.view === "crash" && game.phase !== "running") updateUI();
     });
+    restoreFromServer();
   }
 
   init();

@@ -49,8 +49,14 @@ def _path(user_id: int, charge_id: str) -> str:
 
 def _is_duplicate(exc: Exception) -> bool:
     status = getattr(exc, "status_code", None)
+    code = str(getattr(exc, "code", "") or "").lower()
     text = str(exc).lower()
-    return status in (409, 412) or "already exists" in text or "conflict" in text
+    return (
+        status in (409, 412)
+        or "already exist" in text
+        or "conflict" in text
+        or "exist" in code
+    )
 
 
 def save_purchase(
@@ -128,6 +134,50 @@ def list_purchases(user_id: int) -> list[dict]:
 
     records.sort(key=lambda item: item["created_at"], reverse=True)
     return records[:MAX_PURCHASES]
+
+
+def purchases_excluding(user_id: int, known: set[str]) -> list[dict]:
+    """Verified purchases of one user whose key is not in ``known``.
+
+    The key is the stored file name (the sanitized charge id), so already
+    credited purchases are skipped without downloading them again.
+    """
+    blob = _blob()
+    prefix = f"{PURCHASE_PREFIX}/{_safe_part(user_id, 'unknown')}/"
+    try:
+        items = list(blob.query_blobs(prefix=prefix, page_size=100))
+    except Exception as exc:  # noqa: BLE001
+        raise PaymentStorageError(str(exc)) from exc
+
+    found: list[dict] = []
+    for item in items[:200]:
+        name = str(getattr(item, "pathname", "")).rsplit("/", 1)[-1]
+        if not name.endswith(".json"):
+            continue
+        key = name[:-5]
+        if key in known:
+            continue
+        try:
+            downloaded = blob.get_blob(item.url, access="private")
+            record = json.loads(downloaded.body.decode("utf-8"))
+        except blob.BlobNotFoundError:
+            continue
+        except Exception as exc:  # noqa: BLE001
+            print(f"[payments] read {name}: {exc}", flush=True)
+            continue
+        if not isinstance(record, dict) or int(record.get("user_id", 0)) != int(user_id):
+            continue
+        amount = max(0, min(MAX_TOPUP, int(record.get("amount", 0))))
+        if not amount or not record.get("charge_id"):
+            continue
+        found.append({
+            "key": key,
+            "charge_id": str(record["charge_id"]),
+            "amount": amount,
+            "created_at": int(record.get("created_at", 0)),
+        })
+    found.sort(key=lambda item: item["created_at"])
+    return found
 
 
 def validate_init_data(init_data: str, bot_token: str) -> dict | None:

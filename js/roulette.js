@@ -14,10 +14,6 @@
   ];
   const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
   const SEGMENT = (Math.PI * 2) / WHEEL_ORDER.length;
-  // Hidden pocket weighting: zero pockets land more often than the 38-pocket
-  // board suggests. Visual board and payouts remain unchanged.
-  const POCKET_WEIGHTS = WHEEL_ORDER.map((number) => (number === 0 || number === 37 ? 2 : 1));
-  const TOTAL_POCKET_WEIGHT = POCKET_WEIGHTS.reduce((sum, weight) => sum + weight, 0);
   const CHIP_VALUES = [1, 2, 5, 10, 25, 50];
   const startingDenomination = [...CHIP_VALUES]
     .reverse()
@@ -43,15 +39,6 @@
 
   function labelOf(number) {
     return number === 37 ? "00" : String(number);
-  }
-
-  function randomWinnerIndex() {
-    let ticket = NP.randomInt(TOTAL_POCKET_WEIGHT);
-    for (let index = 0; index < POCKET_WEIGHTS.length; index += 1) {
-      ticket -= POCKET_WEIGHTS[index];
-      if (ticket < 0) return index;
-    }
-    return 0;
   }
 
   function parseBetNumber(key) {
@@ -412,17 +399,6 @@
     }
   }
 
-  function calculatePayout(number) {
-    let payout = 0;
-    Object.entries(roulette.bets).forEach(([key, amount]) => {
-      if (!isWinningBet(key, number)) return;
-      const straight = key.startsWith("num:");
-      const dozen = key.startsWith("dozen:");
-      payout += amount * (straight ? 36 : dozen ? 3 : 2);
-    });
-    return payout;
-  }
-
   function renderLastNumbers() {
     if (!elements.last) return;
     elements.last.replaceChildren();
@@ -471,6 +447,7 @@
 
     roulette.spinning = true;
     updateUI();
+    const unlock = NP.lockSync();
     NP.adjustBalance(-stake, { animate: true });
     NP.sound("roulette");
     NP.haptic("light");
@@ -481,8 +458,24 @@
     }
     if (elements.resultCopy) elements.resultCopy.textContent = "Колесо вращается…";
 
-    const winnerIndex = randomWinnerIndex();
+    // The server picks one of the 38 equally likely pockets and pays out.
+    let data;
+    try {
+      data = await NP.api("roulette.spin", { bets: roulette.bets });
+    } catch (error) {
+      unlock();
+      NP.refreshState(true);
+      NP.toast("Ставка не принята", error.message, "error");
+      if (error.code === "insufficient_funds") NP.openModal("modalTopup");
+      if (elements.resultCopy) elements.resultCopy.textContent = "Сделайте ставку";
+      roulette.spinning = false;
+      updateUI();
+      return;
+    }
+
+    const winnerIndex = data.result.winnerIndex;
     const winner = WHEEL_ORDER[winnerIndex];
+    const payout = data.result.payout;
     const targetBase = -Math.PI / 2 - (winnerIndex + 0.5) * SEGMENT;
     let turns = 6 + NP.randomInt(3);
     let target = targetBase + Math.PI * 2 * turns;
@@ -494,8 +487,8 @@
     await animateWheel(target, 4100);
     await wait(180);
 
-    const payout = calculatePayout(winner);
-    if (payout > 0) NP.adjustBalance(payout, { animate: true });
+    NP.applyState(data.state);
+    unlock();
 
     roulette.last.unshift(winner);
     roulette.last = roulette.last.slice(0, 10);
@@ -503,14 +496,6 @@
     showResult(winner, payout, stake);
 
     const net = payout - stake;
-    NP.recordResult({
-      game: "roulette",
-      title: "Рулетка",
-      detail: `Выпало ${labelOf(winner)} · ${colorName(winner)}`,
-      delta: net,
-      wager: stake
-    });
-
     if (payout > 0 && net > 0) {
       NP.sound(payout >= stake * 10 ? "bigwin" : "win");
       NP.haptic("success");

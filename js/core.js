@@ -4,8 +4,7 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "kaz_demo_v1";
-  const START_BALANCE = 50;
+  const STORAGE_KEY = "kaz_ui_v2";
   const DEFAULT_BET = 50;
   const DAILY_BONUS = 10;
   const MIN_WITHDRAW = 500;
@@ -49,7 +48,7 @@
 
   function createDefaultState() {
     return {
-      balance: START_BALANCE,
+      balance: 0,
       games: 0,
       wagered: 0,
       biggestWin: 0,
@@ -57,6 +56,8 @@
       withdrawals: [],
       purchases: [],
       lastDaily: null,
+      active: {},
+      loaded: false,
       sound: true
     };
   }
@@ -66,6 +67,9 @@
     return Number.isFinite(number) ? number : fallback;
   }
 
+  // The balance, history and rounds live on the server. The browser keeps
+  // only the sound setting and the last known balance (shown until the
+  // server answers).
   function loadState() {
     const fresh = createDefaultState();
     try {
@@ -73,57 +77,9 @@
       if (!raw) return fresh;
       const saved = JSON.parse(raw);
       if (!saved || typeof saved !== "object") return fresh;
-
-      const history = Array.isArray(saved.history)
-        ? saved.history
-            .filter((entry) => entry && GAME_META[entry.game] && Number.isFinite(Number(entry.delta)))
-            .slice(0, MAX_HISTORY)
-            .map((entry) => ({
-              id: String(entry.id || `${Date.now()}-${Math.random()}`),
-              game: entry.game,
-              title: String(entry.title || GAME_META[entry.game].label).slice(0, 80),
-              detail: String(entry.detail || "").slice(0, 140),
-              delta: Math.round(Number(entry.delta)),
-              wager: Math.max(0, Math.round(Number(entry.wager) || 0)),
-              at: Number(entry.at) || Date.now()
-            }))
-        : [];
-
-      const withdrawals = Array.isArray(saved.withdrawals)
-        ? saved.withdrawals
-            .filter((entry) => entry && Number.isFinite(Number(entry.amount)) && Number(entry.amount) > 0)
-            .slice(0, 20)
-            .map((entry) => ({
-              id: String(entry.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).slice(0, 60),
-              amount: Math.max(0, Math.round(Number(entry.amount))),
-              contact: String(entry.contact || "").slice(0, 80),
-              at: Number(entry.at) || Date.now(),
-              status: "sent"
-            }))
-        : [];
-
-      const purchases = Array.isArray(saved.purchases)
-        ? saved.purchases
-            .filter((entry) => entry && String(entry.chargeId || "").trim() && Number(entry.amount) > 0)
-            .slice(0, 100)
-            .map((entry) => ({
-              chargeId: String(entry.chargeId).slice(0, 100),
-              amount: Math.max(0, Math.round(Number(entry.amount))),
-              at: Number(entry.at) || Date.now()
-            }))
-        : [];
-
-      return {
-        balance: Math.max(0, Math.round(safeNumber(saved.balance, START_BALANCE))),
-        games: Math.max(0, Math.round(safeNumber(saved.games))),
-        wagered: Math.max(0, Math.round(safeNumber(saved.wagered))),
-        biggestWin: Math.max(0, Math.round(safeNumber(saved.biggestWin))),
-        history,
-        withdrawals,
-        purchases,
-        lastDaily: typeof saved.lastDaily === "string" ? saved.lastDaily : null,
-        sound: saved.sound !== false
-      };
+      fresh.sound = saved.sound !== false;
+      fresh.balance = Math.max(0, Math.round(safeNumber(saved.balance)));
+      return fresh;
     } catch (error) {
       return fresh;
     }
@@ -140,7 +96,10 @@
 
   function saveState() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        sound: state.sound,
+        balance: state.balance
+      }));
     } catch (error) {
       /* localStorage can be unavailable in private mode. */
     }
@@ -331,6 +290,12 @@
     renderWithdrawals();
   }
 
+  const WITHDRAW_STATUS = {
+    pending: "На проверке",
+    paid: "Выплачено",
+    rejected: "Отклонена"
+  };
+
   function renderWithdrawals() {
     const list = document.getElementById("withdrawHistoryList");
     if (!list) return;
@@ -365,7 +330,7 @@
           <span>Заявка ${escapeHtml(request.id)}</span>
           <small>${escapeHtml(historyDate(request.at))}${escapeHtml(contact)}</small>
         </div>
-        <span class="withdraw-status">Отправлена</span>
+        <span class="withdraw-status">${escapeHtml(WITHDRAW_STATUS[request.status] || "На проверке")}</span>
       `;
       list.append(row);
     });
@@ -410,34 +375,23 @@
     });
   }
 
-  function recordResult({ game, title, detail, delta, wager }) {
-    if (!GAME_META[game]) return;
-    const net = Math.round(safeNumber(delta));
-    const entry = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      game,
-      title: title || GAME_META[game].label,
-      detail: detail || "",
-      delta: net,
-      wager: Math.max(0, Math.round(safeNumber(wager))),
-      at: Date.now()
-    };
+  // History and statistics are written by the server together with the
+  // result of the round; the app only displays them (see applyState).
+  function recordResult() {}
 
-    state.games += 1;
-    state.wagered += entry.wager;
-    state.biggestWin = Math.max(state.biggestWin, net);
-    state.history.unshift(entry);
-    state.history = state.history.slice(0, MAX_HISTORY);
-    saveState();
-    renderStats();
-    renderHistory();
-    document.dispatchEvent(new CustomEvent("np:state", { detail: { entry } }));
+  const DAY_MS = 86_400_000;
+  const MSK_MS = 3 * 3_600_000;
+
+  function mskDay() {
+    return new Date(Date.now() + MSK_MS).toISOString().slice(0, 10);
+  }
+
+  function msUntilNextDay() {
+    return DAY_MS - ((Date.now() + MSK_MS) % DAY_MS);
   }
 
   function timeUntilTomorrow() {
-    const now = new Date();
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    const minutes = Math.max(0, Math.ceil((tomorrow.getTime() - now.getTime()) / 60_000));
+    const minutes = Math.max(0, Math.ceil(msUntilNextDay() / 60_000));
     if (minutes < 60) return `через ${minutes} мин`;
     const hours = Math.floor(minutes / 60);
     const rest = minutes % 60;
@@ -445,7 +399,7 @@
   }
 
   function updateDailyUI() {
-    const claimed = state.lastDaily === todayKey();
+    const claimed = state.lastDaily === mskDay();
     const heroLabel = $("#heroBonusBtn span");
     if (heroLabel) heroLabel.textContent = claimed ? "Бонус получен" : "Забрать 10 звёзд";
 
@@ -464,9 +418,7 @@
 
   function scheduleDailyRefresh() {
     window.clearTimeout(dailyTimer);
-    const now = new Date();
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    const delay = Math.max(1_000, tomorrow.getTime() - now.getTime() + 1_000);
+    const delay = Math.max(1_000, msUntilNextDay() + 1_000);
     dailyTimer = window.setTimeout(() => {
       updateDailyUI();
       scheduleDailyRefresh();
@@ -524,7 +476,7 @@
       /* BackButton is optional. */
     }
     syncTelegramBack();
-    syncPurchases();
+    refreshState(true);
   }
 
   function prepareTelegram() {
@@ -808,21 +760,23 @@
     openModal("modalBonus");
   }
 
-  function claimDaily() {
-    if (state.lastDaily === todayKey()) {
+  async function claimDaily() {
+    if (state.lastDaily === mskDay()) {
       toast("Бонус уже получен", "Новый бонус будет доступен завтра.", "info");
       return;
     }
-    state.lastDaily = todayKey();
-    adjustBalance(DAILY_BONUS, { animate: true });
-    saveState();
-    updateDailyUI();
-    closeModal("modalBonus");
-    sound("cash");
-    haptic("success");
-    confetti(45);
-    toast("Бонус получен", `+${formatStars(DAILY_BONUS)} звёзд на баланс.`);
-    document.dispatchEvent(new CustomEvent("np:state"));
+    try {
+      const data = await api("daily.claim");
+      applyState(data.state);
+      closeModal("modalBonus");
+      sound("cash");
+      haptic("success");
+      confetti(45);
+      toast("Бонус получен", `+${formatStars(data.result.amount)} звёзд на баланс.`);
+    } catch (error) {
+      if (error.code === "already_claimed") refreshState(true);
+      toast("Бонус недоступен", error.message, "info");
+    }
   }
 
   function openTopup() {
@@ -1031,7 +985,7 @@
     if (!button) return;
     button.disabled = true;
     button.textContent = "Проверяем оплату…";
-    const credited = await syncPurchases(true);
+    const credited = await refreshState(true);
     button.disabled = false;
     button.textContent = "Уже оплатил · проверить";
     if (credited > 0) {
@@ -1041,9 +995,9 @@
     const problems = {
       noauth: ["Не удалось определить аккаунт", "Откройте KAZ кнопкой «Открыть KAZ» из чата с ботом (команда /start) и нажмите проверку снова."],
       unauthorized: ["Сессия устарела", "Откройте KAZ заново кнопкой из чата с ботом (команда /start)."],
-      storage: ["Хранилище платежей недоступно", "Платёж не потерян. Попробуйте через минуту."],
-      server: ["Ошибка сервера", "Попробуйте ещё раз через минуту."],
-      network: ["Нет связи с сервером", "Проверьте интернет и попробуйте снова."]
+      storage_unavailable: ["Хранилище платежей недоступно", "Платёж не потерян. Попробуйте через минуту."],
+      network: ["Нет связи с сервером", "Проверьте интернет и попробуйте снова."],
+      internal_error: ["Ошибка сервера", "Попробуйте ещё раз через минуту."]
     };
     if (problems[lastSyncProblem]) {
       toast(problems[lastSyncProblem][0], problems[lastSyncProblem][1], "info");
@@ -1052,80 +1006,157 @@
     toast("Платёж пока не найден", "Если оплата прошла, подождите несколько секунд и попробуйте снова.", "info");
   }
 
-  let purchaseSyncPromise = null;
-  let lastPurchaseSync = 0;
+  /* ---------- Server state ---------- */
+  class ApiError extends Error {
+    constructor(code, message, status) {
+      super(message);
+      this.code = code;
+      this.status = status;
+    }
+  }
+
+  const API_MESSAGES = {
+    noauth: "Откройте KAZ кнопкой «Открыть KAZ» из чата с ботом (/start).",
+    unauthorized: "Сессия устарела. Откройте KAZ заново кнопкой из чата с ботом.",
+    network: "Нет связи с сервером. Попробуйте ещё раз.",
+    storage_unavailable: "Хранилище временно недоступно. Попробуйте через минуту.",
+    internal_error: "Ошибка сервера. Попробуйте ещё раз.",
+    insufficient_funds: "Мало звёзд на балансе.",
+    round_active: "Раунд уже идёт.",
+    no_round: "Раунд не найден."
+  };
+
+  let roundLocks = 0;
+  let refreshPromise = null;
+  let lastRefresh = 0;
   let lastSyncProblem = "";
 
-  async function syncPurchases(force = false) {
-    if (!hasAuth()) {
-      lastSyncProblem = "noauth";
-      return 0;
+  /** Hold background refreshes while a round animation is still playing. */
+  function lockSync() {
+    roundLocks += 1;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      roundLocks = Math.max(0, roundLocks - 1);
+    };
+  }
+
+  async function api(action, params = {}) {
+    if (!hasAuth()) throw new ApiError("noauth", API_MESSAGES.noauth, 0);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 20000);
+    let response;
+    try {
+      response = await fetch("/api/game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: controller.signal,
+        body: JSON.stringify(authBody(Object.assign({}, params, { action })))
+      });
+    } catch (error) {
+      throw new ApiError("network", API_MESSAGES.network, 0);
+    } finally {
+      window.clearTimeout(timer);
     }
-    lastSyncProblem = "";
-    if (purchaseSyncPromise) return purchaseSyncPromise;
-    if (!force && Date.now() - lastPurchaseSync < 3000) return 0;
-    lastPurchaseSync = Date.now();
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (error) {
+      data = null;
+    }
+    if (!response.ok || !data || !data.ok) {
+      const code = data && data.error ? data.error : response.status === 401 ? "unauthorized" : "internal_error";
+      const message = (data && data.message) || API_MESSAGES[code] || API_MESSAGES.internal_error;
+      throw new ApiError(code, message, response.status);
+    }
+    return data;
+  }
 
-    purchaseSyncPromise = (async () => {
-      const controller = new AbortController();
-      const timer = window.setTimeout(() => controller.abort(), 10000);
+  function applyState(server, options = {}) {
+    if (!server || typeof server !== "object") return;
+    const int = (value) => Math.max(0, Math.round(safeNumber(value)));
+    state.balance = int(server.balance);
+    state.games = int(server.games);
+    state.wagered = int(server.wagered);
+    state.biggestWin = int(server.biggestWin);
+    state.history = (Array.isArray(server.history) ? server.history : [])
+      .filter((entry) => entry && GAME_META[entry.game])
+      .slice(0, MAX_HISTORY)
+      .map((entry) => ({
+        id: String(entry.id),
+        game: entry.game,
+        title: String(entry.title || GAME_META[entry.game].label).slice(0, 80),
+        detail: String(entry.detail || "").slice(0, 140),
+        delta: Math.round(safeNumber(entry.delta)),
+        wager: int(entry.wager),
+        at: Number(entry.at) || Date.now()
+      }));
+    state.withdrawals = (Array.isArray(server.withdrawals) ? server.withdrawals : [])
+      .slice(0, 20)
+      .map((entry) => ({
+        id: String(entry.id).slice(0, 60),
+        amount: int(entry.amount),
+        contact: String(entry.contact || "").slice(0, 80),
+        at: Number(entry.at) || Date.now(),
+        status: String(entry.status || "pending")
+      }));
+    state.purchases = (Array.isArray(server.purchases) ? server.purchases : [])
+      .slice(0, 100)
+      .map((entry) => ({
+        chargeId: String(entry.chargeId).slice(0, 100),
+        amount: int(entry.amount),
+        at: Number(entry.at) || Date.now()
+      }));
+    state.lastDaily = typeof server.lastDaily === "string" ? server.lastDaily : null;
+    state.active = server.active && typeof server.active === "object" ? server.active : {};
+    state.loaded = true;
+    saveState();
+    renderBalance(options.animate !== false);
+    renderStats();
+    renderHistory();
+    renderPurchases();
+    renderWithdrawals();
+    updateDailyUI();
+    updateWithdrawUI();
+    document.dispatchEvent(new CustomEvent("np:state"));
+  }
+
+  /**
+   * Load the player's state from the server (this also credits new Telegram
+   * Stars purchases). Resolves to the number of newly credited stars.
+   */
+  async function refreshState(force = false) {
+    if (refreshPromise) return refreshPromise;
+    if (!force && (roundLocks > 0 || Date.now() - lastRefresh < 3000)) return 0;
+    if (roundLocks > 0) return 0;
+    lastRefresh = Date.now();
+
+    refreshPromise = (async () => {
       try {
-        const response = await fetch("/api/purchases", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          credentials: "same-origin",
-          signal: controller.signal,
-          body: JSON.stringify(authBody({}))
-        });
-        if (!response.ok) {
-          lastSyncProblem = response.status === 401 ? "unauthorized"
-            : response.status === 503 ? "storage" : "server";
-          return 0;
+        const data = await api("state");
+        lastSyncProblem = "";
+        if (roundLocks > 0) return 0;
+        applyState(data.state);
+        const credited = Math.max(0, Math.round(safeNumber(data.result && data.result.credited)));
+        if (credited > 0) {
+          sound("cash");
+          haptic("success");
+          toast("Баланс пополнен", `+${formatStars(credited)} ★ зачислено.`);
         }
-        const payload = await response.json();
-        if (!payload || !Array.isArray(payload.purchases)) {
-          lastSyncProblem = "server";
-          return 0;
-        }
-
-        const known = new Set(state.purchases.map((item) => item.chargeId));
-        let credited = 0;
-        payload.purchases.forEach((purchase) => {
-          const chargeId = String(purchase.charge_id || "").slice(0, 100);
-          const amount = Math.min(MAX_TOPUP, Math.max(0, Math.round(safeNumber(purchase.amount))));
-          if (!chargeId || !amount || known.has(chargeId)) return;
-          known.add(chargeId);
-          state.purchases.unshift({
-            chargeId,
-            amount,
-            at: Number(purchase.created_at) * 1000 || Date.now()
-          });
-          credited += amount;
-        });
-
-        if (!credited) return 0;
-        state.purchases = state.purchases.slice(0, 100);
-        state.balance = Math.max(0, state.balance + credited);
-        saveState();
-        renderBalance(true);
-        renderPurchases();
-        sound("cash");
-        haptic("success");
-        toast("Баланс пополнен", `+${formatStars(credited)} ★ зачислено.`);
-        document.dispatchEvent(new CustomEvent("np:state"));
+        document.dispatchEvent(new CustomEvent("np:synced"));
         return credited;
       } catch (error) {
-        /* Payment sync is best-effort; the next app open will retry. */
-        lastSyncProblem = "network";
+        lastSyncProblem = error.code || "internal_error";
         return 0;
       } finally {
-        window.clearTimeout(timer);
-        purchaseSyncPromise = null;
+        refreshPromise = null;
       }
     })();
 
-    return purchaseSyncPromise;
+    return refreshPromise;
   }
 
   function telegramUser() {
@@ -1142,17 +1173,13 @@
     return [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
   }
 
-  function withdrawalId() {
-    return `W-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  }
-
   function updateWithdrawUI() {
     const input = document.getElementById("withdrawAmount");
     const submit = document.getElementById("withdrawSubmitBtn");
     const footnote = document.getElementById("withdrawFootnote");
     const amount = Math.round(safeNumber(input && input.value));
     const identity = telegramIdentity(telegramUser());
-    const canSend = Boolean(telegram && typeof telegram.sendData === "function");
+    const canSend = hasAuth();
     const enough = state.balance >= MIN_WITHDRAW;
     const valid = !withdrawLocked
       && canSend
@@ -1203,21 +1230,6 @@
     openModal("modalWithdraw");
   }
 
-  function sendWithdrawRequest(request) {
-    if (!telegram || typeof telegram.sendData !== "function") return "unavailable";
-    try {
-      telegram.sendData(JSON.stringify({
-        type: "withdraw",
-        id: request.id,
-        amount: request.amount,
-        at: request.at
-      }));
-      return "sent";
-    } catch (error) {
-      return "unavailable";
-    }
-  }
-
   function showWithdrawResult(request) {
     const result = document.getElementById("withdrawResult");
     if (!result) return;
@@ -1227,11 +1239,10 @@
     `;
   }
 
-  function submitWithdraw() {
+  async function submitWithdraw() {
     if (withdrawLocked) return;
     const input = document.getElementById("withdrawAmount");
     const amount = Math.round(safeNumber(input && input.value));
-    const identity = telegramIdentity(telegramUser());
 
     if (state.balance < MIN_WITHDRAW) {
       toast("Мало звёзд", `Для вывода нужно минимум ${MIN_WITHDRAW} ★.`, "error");
@@ -1241,41 +1252,29 @@
       toast("Проверьте сумму", `Введите сумму от ${MIN_WITHDRAW} до ${formatStars(state.balance)} ★.`, "error");
       return;
     }
-    if (!telegram || typeof telegram.sendData !== "function") {
-      toast("Откройте через ShuzaGram", "Заявка на вывод отправляется только из Mini App.", "error");
-      return;
-    }
 
-    const request = {
-      id: withdrawalId(),
-      amount,
-      contact: (identity || "ShuzaGram").slice(0, 80),
-      at: Date.now(),
-      status: "sent"
-    };
-    state.withdrawals.unshift(request);
-    state.withdrawals = state.withdrawals.slice(0, 20);
     withdrawLocked = true;
-    adjustBalance(-amount, { animate: true });
-    saveState();
-    sound("cash");
-    haptic("success");
-    const mode = sendWithdrawRequest(request);
-    if (mode !== "sent") {
-      state.withdrawals = state.withdrawals.filter((item) => item.id !== request.id);
-      withdrawLocked = false;
-      adjustBalance(amount, { animate: false });
-      saveState();
-      updateWithdrawUI();
-      renderWithdrawals();
-      toast("Не удалось отправить", "Откройте KAZ через ShuzaGram и попробуйте снова.", "error");
-      return;
-    }
-    showWithdrawResult(request);
     updateWithdrawUI();
-    renderWithdrawals();
-    document.dispatchEvent(new CustomEvent("np:state"));
-    toast("Заявка создана", `${formatStars(amount)} ★ зарезервированы для вывода.`, "info");
+    try {
+      const data = await api("withdraw.request", { amount });
+      applyState(data.state);
+      sound("cash");
+      haptic("success");
+      showWithdrawResult(data.result.withdrawal);
+      updateWithdrawUI();
+      document.dispatchEvent(new CustomEvent("np:state"));
+      toast(
+        "Заявка создана",
+        data.result.notified === false
+          ? `${formatStars(amount)} ★ зарезервированы, но администратор пока не уведомлён.`
+          : `${formatStars(amount)} ★ зарезервированы для вывода.`,
+        "info"
+      );
+    } catch (error) {
+      withdrawLocked = false;
+      updateWithdrawUI();
+      toast("Не удалось создать заявку", error.message, "error");
+    }
   }
 
   /* ---------- Event wiring ---------- */
@@ -1301,6 +1300,7 @@
         if (action.dataset.action === "daily-claim") claimDaily();
         if (action.dataset.action === "topup") openTopup();
         if (action.dataset.action === "withdraw") openWithdraw();
+        if (action.dataset.action === "fair") openModal("modalFair");
         return;
       }
     });
@@ -1350,12 +1350,12 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
         updateDailyUI();
-        syncPurchases();
+        refreshState();
       }
     });
     window.addEventListener("pageshow", () => {
       updateDailyUI();
-      syncPurchases();
+      refreshState();
     });
 
     window.addEventListener("popstate", () => {
@@ -1374,6 +1374,7 @@
     renderAll();
     syncSoundButton();
     scheduleDailyRefresh();
+    refreshState(true);
     const initialView = getViewFromHash();
     navigate(initialView, { push: false, scroll: false });
     if (!suspendHash) {
@@ -1394,6 +1395,11 @@
     setBalance,
     adjustBalance,
     recordResult,
+    api,
+    applyState,
+    refreshState,
+    lockSync,
+    hasAuth,
     renderAll,
     renderStats,
     renderHistory,

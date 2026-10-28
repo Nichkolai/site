@@ -9,6 +9,9 @@
     },
     "api/topup.py": {
       "maxDuration": 30
+    },
+    "api/game.py": {
+      "maxDuration": 30
     }
   }
 }

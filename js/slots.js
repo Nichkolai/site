@@ -185,24 +185,6 @@
     setBet(balance);
   }
 
-  function evaluateGrid(grid, bet) {
-    const lineStake = bet / LINES.length;
-    const wins = new Set();
-    let total = 0;
-    let lineCount = 0;
-
-    LINES.forEach((line) => {
-      const symbols = line.map((index) => grid[index]);
-      if (symbols[0].id === symbols[1].id && symbols[1].id === symbols[2].id) {
-        total += Math.round(lineStake * symbols[0].triple);
-        lineCount += 1;
-        line.forEach((index) => wins.add(index));
-      }
-    });
-
-    return { total, lineCount, wins };
-  }
-
   function showReadyState() {
     if (!elements.win) return;
     elements.win.className = "slot-win";
@@ -289,21 +271,45 @@
       elements.win.innerHTML = "<span>Барабаны вращаются</span><strong>Удачи!</strong>";
     }
 
+    const unlock = NP.lockSync();
     NP.adjustBalance(-bet, { animate: true });
     NP.sound("spin");
     NP.haptic("light");
 
-    const finalGrid = randomGrid();
+    // The server rolls the reels and pays out; the app only shows the result.
+    let data;
+    try {
+      data = await NP.api("slots.spin", { bet });
+    } catch (error) {
+      unlock();
+      NP.refreshState(true);
+      NP.toast("Спин не выполнен", error.message, "error");
+      if (error.code === "insufficient_funds") NP.openModal("modalTopup");
+      showReadyState();
+      slot.spinning = false;
+      setControlsDisabled(false);
+      updateBetUI();
+      return;
+    }
+
+    const byId = Object.fromEntries(SYMBOLS.map((symbol) => [symbol.id, symbol]));
+    const finalGrid = data.result.grid.map((id) => byId[id] || SYMBOLS[0]);
     await animateReels(finalGrid);
 
     slot.grid = finalGrid;
     paintGrid(finalGrid);
-    const result = evaluateGrid(finalGrid, bet);
+    const result = {
+      total: data.result.total,
+      lineCount: data.result.lines,
+      wins: new Set(data.result.wins)
+    };
     setWins(result.wins);
     await wait(160);
 
+    NP.applyState(data.state);
+    unlock();
+
     if (result.total > 0) {
-      NP.adjustBalance(result.total, { animate: true });
       NP.sound(result.total >= bet * 15 ? "bigwin" : "win");
       NP.haptic("success");
       if (result.total >= bet * 15) NP.confetti(55);
@@ -313,19 +319,6 @@
     }
 
     showResult(result.total, result.lineCount);
-    const net = result.total - bet;
-    const detail = result.total > 0
-      ? `${result.lineCount} ${result.lineCount === 1 ? "линия" : result.lineCount < 5 ? "линии" : "линий"}`
-      : "Без выигрыша";
-
-    NP.recordResult({
-      game: "slots",
-      title: "Слоты",
-      detail,
-      delta: net,
-      wager: bet
-    });
-
     if (result.total > 0) {
       NP.toast(
         result.total >= bet * 15 ? "Крупный выигрыш!" : "Есть выигрыш!",

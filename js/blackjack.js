@@ -23,7 +23,6 @@
   const bj = {
     bet: startingBet,
     phase: "idle",
-    deck: [],
     player: [],
     dealer: [],
     hidden: true,
@@ -37,27 +36,10 @@
 
   const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
-  function createDeck() {
-    const deck = [];
-    SUITS.forEach((suit) => {
-      RANKS.forEach((rank) => deck.push({ rank, suit }));
-    });
-    for (let index = deck.length - 1; index > 0; index -= 1) {
-      const swap = NP.randomInt(index + 1);
-      [deck[index], deck[swap]] = [deck[swap], deck[index]];
-    }
-    return deck;
-  }
-
-  function drawCard(bias = false) {
-    if (!bj.deck.length) bj.deck = createDeck();
-    // Hidden house protection: a small share of player hits are replaced by
-    // a ten-value card. The table and displayed rules stay unchanged.
-    if (bias && NP.randomFloat() < 0.12) {
-      const index = bj.deck.findIndex((card) => cardPoints(card) === 10);
-      if (index >= 0) return bj.deck.splice(index, 1)[0];
-    }
-    return bj.deck.pop();
+  // Cards come from the server as [rank, suitIndex]; null is the dealer's
+  // face-down card, which the app never receives until the round is over.
+  function toCard(raw) {
+    return raw ? { rank: raw[0], suit: SUITS[raw[1]] } : null;
   }
 
   function cardPoints(card) {
@@ -66,7 +48,8 @@
     return Number(card.rank);
   }
 
-  function handValue(hand) {
+  function handValue(rawHand) {
+    const hand = rawHand.filter(Boolean);
     let total = hand.reduce((sum, card) => sum + cardPoints(card), 0);
     let aces = hand.filter((card) => card.rank === "A").length;
     while (total > 21 && aces > 0) {
@@ -88,7 +71,8 @@
 
   function cardElement(card, index, hidden = false) {
     const element = document.createElement("div");
-    element.className = `playing-card ${card.suit.color}${hidden ? " hidden-card" : ""}`;
+    hidden = hidden || !card;
+    element.className = `playing-card ${card ? card.suit.color : "black"}${hidden ? " hidden-card" : ""}`;
     element.style.animationDelay = `${Math.min(index * 55, 280)}ms`;
     if (hidden) {
       element.setAttribute("aria-label", "Закрытая карта дилера");
@@ -154,7 +138,7 @@
     if (elements.betDouble) elements.betDouble.disabled = playing || bj.bet >= balance;
     if (elements.betMax) elements.betMax.disabled = playing || bj.bet >= balance || balance < MIN_BET;
     if (elements.deal) {
-      elements.deal.disabled = playing;
+      elements.deal.disabled = playing || bj.busy;
       elements.deal.textContent = playing ? "Идёт раунд" : bj.phase === "done" ? "Новая игра" : "Раздать";
     }
     if (elements.actions) elements.actions.hidden = bj.phase !== "player";
@@ -169,7 +153,32 @@
     }
   }
 
-  function startRound() {
+  function describeError(error) {
+    return error && error.message ? error.message : "Попробуйте ещё раз.";
+  }
+
+  function applyView(view) {
+    bj.player = view.player.map(toCard);
+    bj.dealer = view.dealer.map(toCard);
+    bj.hidden = view.hidden;
+    bj.wager = view.wager;
+    bj.bet = view.bet;
+    bj.doubled = view.doubled;
+  }
+
+  /** Rebuild a round that is still running on the server (e.g. after a reload). */
+  function restoreFromServer() {
+    const saved = NP.getState().active && NP.getState().active.blackjack;
+    if (!saved || isPlaying() || bj.busy) return;
+    applyView(saved);
+    bj.phase = "player";
+    bj.settled = false;
+    renderHands();
+    setStatus("Ваш ход: «Ещё», «Хватит» или «Удвоить»");
+    updateControls();
+  }
+
+  async function startRound() {
     if (isPlaying() || bj.busy) return;
     if (NP.getState().balance < bj.bet) {
       NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
@@ -177,212 +186,210 @@
       return;
     }
 
-    bj.deck = createDeck();
-    bj.player = [drawCard(), drawCard()];
-    bj.dealer = [drawCard(), drawCard()];
-    bj.hidden = true;
-    bj.phase = "player";
-    bj.wager = bj.bet;
-    bj.settled = false;
-    bj.busy = false;
-    bj.doubled = false;
-
+    bj.busy = true;
+    updateControls();
+    const unlock = NP.lockSync();
     NP.adjustBalance(-bj.bet, { animate: true });
+
+    let data;
+    try {
+      data = await NP.api("blackjack.deal", { bet: bj.bet });
+    } catch (error) {
+      unlock();
+      bj.busy = false;
+      await NP.refreshState(true);
+      if (error.code === "round_active") restoreFromServer();
+      else NP.toast("Раздача не началась", describeError(error), "error");
+      if (error.code === "insufficient_funds") NP.openModal("modalTopup");
+      updateControls();
+      return;
+    }
+
+    const view = data.result.view;
+    applyView(view);
+    bj.phase = "player";
+    bj.settled = false;
     NP.sound("card");
     NP.haptic("light");
     renderHands();
     setStatus("Ваш ход: «Ещё», «Хватит» или «Удвоить»");
-    updateControls();
 
-    const playerTotal = handValue(bj.player).total;
-    const dealerTotal = handValue(bj.dealer).total;
-
-    if (playerTotal === 21 || dealerTotal === 21) {
-      bj.busy = true;
-      updateControls();
-      window.setTimeout(() => {
-        if (playerTotal === 21 && dealerTotal === 21) {
-          settle("push");
-        } else if (playerTotal === 21) {
-          settle("blackjack");
-        } else {
-          settle("dealerBlackjack");
-        }
-      }, 760);
-    }
-  }
-
-  function hit() {
-    if (bj.phase !== "player" || bj.busy) return;
-    bj.player.push(drawCard(true));
-    NP.sound("card");
-    NP.haptic("light");
-    renderHands();
-
-    const value = handValue(bj.player);
-    if (value.total > 21) {
-      bj.phase = "dealer";
-      bj.busy = true;
-      setStatus(`Перебор: ${value.total}. Дилер открывает карты…`, "lose");
-      updateControls();
-      bj.hidden = false;
-      renderHands();
-      window.setTimeout(() => settle("bust"), 720);
-    } else if (value.total === 21) {
-      bj.busy = true;
-      setStatus("Ровно 21! Передаём ход дилеру…");
-      updateControls();
-      window.setTimeout(() => {
-        bj.busy = false;
-        stand();
-      }, 520);
-    } else {
-      setStatus(`У вас ${value.total}. Ещё карту?`);
-      updateControls();
-    }
-  }
-
-  function shouldDealerHit(hand) {
-    const value = handValue(hand);
-    return value.total < 17 || (value.total === 17 && value.soft);
-  }
-
-  async function dealerTurn() {
-    bj.phase = "dealer";
-    bj.hidden = false;
-    bj.busy = true;
-    renderHands();
-    updateControls();
-    setStatus("Дилер открывает карты…");
-
-    await wait(450);
-
-    while (shouldDealerHit(bj.dealer)) {
-      bj.dealer.push(drawCard());
-      NP.sound("card");
-      renderHands();
-      setStatus(`Дилер добирает: ${handValue(bj.dealer).total}`);
-      updateControls();
-      await wait(450);
-    }
-
-    await wait(240);
-    const playerTotal = handValue(bj.player).total;
-    const finalDealer = handValue(bj.dealer).total;
-
-    if (finalDealer > 21) settle("dealerBust");
-    else if (playerTotal > finalDealer) settle("win");
-    else if (playerTotal === finalDealer) settle("push");
-    else settle("lose");
-  }
-
-  function stand() {
-    if (bj.phase !== "player" || bj.busy) return;
-    if (handValue(bj.player).total > 21) {
-      settle("bust");
+    if (view.phase === "done") {
+      await conclude(view, data, unlock);
       return;
     }
-    dealerTurn();
+    NP.applyState(data.state);
+    unlock();
+    bj.busy = false;
+    updateControls();
   }
 
-  function doubleDown() {
+  async function sendAction(action) {
+    if (bj.phase !== "player" || bj.busy) return null;
+    bj.busy = true;
+    updateControls();
+    const unlock = NP.lockSync();
+    try {
+      const data = await NP.api(action);
+      return { data, unlock };
+    } catch (error) {
+      unlock();
+      bj.busy = false;
+      NP.toast("Действие не выполнено", describeError(error), "error");
+      await NP.refreshState(true);
+      if (error.code === "no_round") {
+        bj.phase = "idle";
+        restoreFromServer();
+      }
+      updateControls();
+      return null;
+    }
+  }
+
+  async function hit() {
+    const sent = await sendAction("blackjack.hit");
+    if (!sent) return;
+    const { data, unlock } = sent;
+    const view = data.result.view;
+    NP.sound("card");
+    NP.haptic("light");
+    bj.player = view.player.map(toCard);
+    renderHands();
+
+    if (view.phase === "done") {
+      await conclude(view, data, unlock);
+      return;
+    }
+    NP.applyState(data.state);
+    unlock();
+    bj.busy = false;
+    setStatus(`У вас ${view.playerTotal}. Ещё карту?`);
+    updateControls();
+  }
+
+  async function stand() {
+    const sent = await sendAction("blackjack.stand");
+    if (!sent) return;
+    await conclude(sent.data.result.view, sent.data, sent.unlock);
+  }
+
+  async function doubleDown() {
     if (bj.phase !== "player" || bj.busy || bj.doubled || bj.player.length !== 2) return;
     if (NP.getState().balance < bj.bet) {
       NP.toast("Мало звёзд для удвоения", "Выберите меньшую ставку в следующем раунде.", "error");
       return;
     }
-
-    bj.doubled = true;
-    bj.wager += bj.bet;
     NP.adjustBalance(-bj.bet, { animate: true });
-    bj.player.push(drawCard(true));
+    const sent = await sendAction("blackjack.double");
+    if (!sent) return;
+    const view = sent.data.result.view;
+    bj.doubled = true;
+    bj.wager = view.wager;
+    bj.player = view.player.map(toCard);
     NP.sound("card");
     renderHands();
     setStatus("Ставка удвоена. Одна карта — и ход дилеру.");
-    updateControls();
-
-    bj.hidden = false;
-    bj.busy = true;
-    updateControls();
-    renderHands();
-
-    window.setTimeout(() => {
-      const total = handValue(bj.player).total;
-      if (total > 21) {
-        setStatus(`Перебор: ${total}`, "lose");
-        window.setTimeout(() => settle("bust"), 500);
-      } else {
-        dealerTurn();
-      }
-    }, 600);
+    await wait(600);
+    await conclude(view, sent.data, sent.unlock);
   }
 
-  function settle(outcome) {
+  /** Play back the server's finished round: dealer cards, then the result. */
+  async function conclude(view, data, unlock) {
+    bj.busy = true;
+    bj.phase = "dealer";
+    bj.player = view.player.map(toCard);
+    bj.wager = view.wager;
+    bj.doubled = view.doubled;
+    const finalDealer = view.dealer.map(toCard);
+    const outcome = view.outcome;
+    updateControls();
+
+    const dealtBlackjack = view.player.length === 2
+      && finalDealer.length === 2
+      && !view.doubled
+      && (view.playerTotal === 21 || view.dealerTotal === 21);
+
+    if (outcome === "bust") {
+      bj.hidden = false;
+      bj.dealer = finalDealer;
+      renderHands();
+      setStatus(`Перебор: ${view.playerTotal}. Дилер открывает карты…`, "lose");
+      await wait(720);
+    } else if (dealtBlackjack) {
+      bj.hidden = false;
+      bj.dealer = finalDealer;
+      renderHands();
+      await wait(760);
+    } else {
+      if (view.playerTotal === 21) {
+        setStatus("Ровно 21! Передаём ход дилеру…");
+        await wait(520);
+      }
+      bj.hidden = false;
+      bj.dealer = finalDealer.slice(0, 2);
+      renderHands();
+      setStatus("Дилер открывает карты…");
+      await wait(450);
+      for (let index = 2; index < finalDealer.length; index += 1) {
+        bj.dealer.push(finalDealer[index]);
+        NP.sound("card");
+        renderHands();
+        setStatus(`Дилер добирает: ${handValue(bj.dealer).total}`);
+        await wait(450);
+      }
+      await wait(240);
+    }
+
+    settle(view, data, unlock);
+  }
+
+  function settle(view, data, unlock) {
     if (bj.settled) return;
     bj.settled = true;
     bj.hidden = false;
     bj.phase = "done";
     bj.busy = false;
 
-    const wager = bj.wager;
-    const playerTotal = handValue(bj.player).total;
-    const dealerTotal = handValue(bj.dealer).total;
-    const blackjackProfit = Math.round(wager * 1.2);
-    let payout = 0;
+    const outcome = view.outcome;
+    const wager = view.wager;
+    const playerTotal = view.playerTotal;
+    const dealerTotal = view.dealerTotal;
+    const net = view.net;
+    const money = NP.formatStars(Math.abs(net));
     let tone = "lose";
     let statusText = "";
-    let detailText = "";
 
     switch (outcome) {
       case "blackjack":
-        payout = wager + blackjackProfit;
         tone = "win";
-        statusText = `Блэкджек! +${NP.formatStars(blackjackProfit)} ★`;
-        detailText = "Блэкджек";
+        statusText = `Блэкджек! +${money} ★`;
         break;
       case "win":
-        payout = wager * 2;
         tone = "win";
-        statusText = `Вы выиграли ${playerTotal}:${dealerTotal} · +${NP.formatStars(wager)} ★`;
-        detailText = `${playerTotal}:${dealerTotal} в вашу пользу`;
+        statusText = `Вы выиграли ${playerTotal}:${dealerTotal} · +${money} ★`;
         break;
       case "dealerBust":
-        payout = wager * 2;
         tone = "win";
-        statusText = `Перебор у дилера: ${dealerTotal} · +${NP.formatStars(wager)} ★`;
-        detailText = `Перебор дилера ${dealerTotal}`;
+        statusText = `Перебор у дилера: ${dealerTotal} · +${money} ★`;
         break;
       case "push":
-        payout = wager;
         tone = "push";
         statusText = `Ничья ${playerTotal}:${dealerTotal} · ставка возвращена`;
-        detailText = `Ничья ${playerTotal}:${dealerTotal} · возврат ставки`;
         break;
       case "bust":
         statusText = `Перебор ${playerTotal} · −${NP.formatStars(wager)} ★`;
-        detailText = `Перебор ${playerTotal}`;
         break;
       case "dealerBlackjack":
         statusText = `Блэкджек у дилера · −${NP.formatStars(wager)} ★`;
-        detailText = "Блэкджек у дилера";
         break;
       default:
         statusText = `Дилер сильнее ${dealerTotal}:${playerTotal} · −${NP.formatStars(wager)} ★`;
-        detailText = `Дилер ${dealerTotal}:${playerTotal}`;
     }
 
-    if (payout > 0) NP.adjustBalance(payout, { animate: true });
+    NP.applyState(data.state);
+    unlock();
     renderHands();
     setStatus(statusText, tone);
-
-    const net = payout - wager;
-    NP.recordResult({
-      game: "blackjack",
-      title: "Блэкджек",
-      detail: detailText,
-      delta: net,
-      wager
-    });
 
     if (outcome === "blackjack") {
       NP.sound("bigwin");
@@ -400,7 +407,6 @@
       NP.haptic("error");
     }
 
-    bj.busy = false;
     updateControls();
   }
 
@@ -463,10 +469,14 @@
     elements.betHalf?.addEventListener("click", halveBet);
     elements.betDouble?.addEventListener("click", doubleBet);
     elements.betMax?.addEventListener("click", maxBet);
-    document.addEventListener("np:state", updateControls);
+    document.addEventListener("np:state", () => {
+      restoreFromServer();
+      updateControls();
+    });
     document.addEventListener("np:navigate", (event) => {
       if (event.detail.view === "blackjack") updateControls();
     });
+    restoreFromServer();
   }
 
   init();

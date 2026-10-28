@@ -15,10 +15,6 @@
   const TARGETS = [1.5, 2, 3, 5, 10];
   const TARGET_EMOJI = { 1.5: "🎁", 2: "🌹", 3: "🎂", 5: "🏆", 10: "💎" };
   const HOUSE_EDGE = 0.93;
-  // The displayed chance stays the same; the actual roll uses a hidden
-  // reduction so the visible marker never contradicts the result.
-  const HIDDEN_CHANCE_FACTOR = 0.88;
-
   const game = {
     bet: startingBet,
     target: 2,
@@ -164,7 +160,7 @@
     NP.sound("click");
   }
 
-  function startRound() {
+  async function startRound() {
     if (game.busy) return;
     if (NP.getState().balance < game.bet) {
       NP.toast("Мало звёзд", "Пополните баланс или выберите ставку меньше.", "error");
@@ -175,13 +171,9 @@
     const bet = game.bet;
     const target = game.target;
     const chance = chanceFor(target);
-    const roll = NP.randomFloat();
-    const won = roll < chance * HIDDEN_CHANCE_FACTOR;
-    const markerRoll = won || roll >= chance
-      ? roll
-      : chance + NP.randomFloat() * (1 - chance);
 
     game.busy = true;
+    const unlock = NP.lockSync();
     NP.adjustBalance(-bet, { animate: true });
     NP.sound("spin");
     NP.haptic("light");
@@ -193,6 +185,24 @@
     }
     if (elements.zone) elements.zone.classList.remove("is-spinning", "is-win", "is-lose");
     if (elements.emoji) elements.emoji.classList.remove("is-popping");
+
+    // The server rolls with exactly the chance shown on the wheel.
+    let data;
+    try {
+      data = await NP.api("upgrader.play", { bet, target });
+    } catch (error) {
+      unlock();
+      NP.refreshState(true);
+      NP.toast("Апгрейд не выполнен", error.message, "error");
+      if (error.code === "insufficient_funds") NP.openModal("modalTopup");
+      resetResult();
+      game.busy = false;
+      updateUI();
+      return;
+    }
+
+    const won = data.result.won;
+    const markerRoll = data.result.roll;
     if (elements.marker) {
       const wheel = elements.zone;
       elements.marker.classList.remove("show");
@@ -206,11 +216,11 @@
     }
 
     window.setTimeout(() => {
-      const payout = Math.round(bet * target);
-      const net = won ? payout - bet : -bet;
+      const net = data.result.net;
+      NP.applyState(data.state);
+      unlock();
 
       if (won) {
-        NP.adjustBalance(payout, { animate: true });
         NP.sound(target >= 5 ? "bigwin" : "win");
         NP.haptic("success");
         if (target >= 5 || net >= bet * 4) NP.confetti(45);
@@ -226,14 +236,6 @@
           elements.result.className = "up-result lose";
         }
       }
-
-      NP.recordResult({
-        game: "upgrader",
-        title: "Апгрейд",
-        detail: `Цель ×${target.toFixed(2)} · шанс ${formatChance(chance)}`,
-        delta: net,
-        wager: bet
-      });
 
       if (elements.zone) {
         elements.zone.classList.remove("is-spinning");
