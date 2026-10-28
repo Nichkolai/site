@@ -13,5 +13,26 @@
     "api/game.py": {
       "maxDuration": 30
     }
-  }
+  },
+  "buildCommand": "python3 tools/stamp_assets.py",
+  "headers": [
+    {
+      "source": "/(.*)\\.(js|css)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/(|index\\.html)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
 }
