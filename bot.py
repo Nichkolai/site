@@ -36,7 +36,7 @@ from pathlib import Path
 
 import payments
 from kaz import store as kaz_store
-import admin_panel
+from kaz import admin_panel
 
 # Windows consoles often default to cp1252/cp866; the bot prints Russian text.
 for _stream in (sys.stdout, sys.stderr):
