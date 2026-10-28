@@ -513,11 +513,17 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
         )
         return
 
+    id_text = html.escape(str(user_id))
+    profile_link = (
+        f' · <a href="sg://user?id={user_id}">открыть профиль</a>'
+        if str(user_id).lstrip("-").isdigit()
+        else ""
+    )
     admin_text = (
         "<b>💸 Заявка на вывод</b>\n\n"
         f"Сумма: <b>{amount} ★</b>\n"
         f"Контакт: {html.escape(contact)}\n"
-        f"ShuzaGram ID: <code>{html.escape(str(user_id))}</code>\n"
+        f"ShuzaGram ID: <code>{id_text}</code>{profile_link}\n"
         f"Заявка: <code>{html.escape(request_id)}</code>\n"
         f"Время: {time.strftime('%d.%m.%Y %H:%M')}"
     )

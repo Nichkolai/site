@@ -52,7 +52,8 @@ def notify_withdrawal(user_id: int, item: dict) -> bool:
         "<b>💸 Заявка на вывод</b>\n\n"
         f"Сумма: <b>{item['amount']} ★</b>\n"
         f"Контакт: {html.escape(item['contact'])}\n"
-        f"ShuzaGram ID: <code>{user_id}</code>\n"
+        f'ShuzaGram ID: <code>{user_id}</code> · '
+        f'<a href="sg://user?id={user_id}">открыть профиль</a>\n'
         f"Заявка: <code>{html.escape(item['id'])}</code>\n"
         f"Время: {time.strftime('%d.%m.%Y %H:%M', time.gmtime(item['at'] / 1000 + 3 * 3600))} МСК\n"
         "Звёзды списаны с баланса игрока и зарезервированы."
