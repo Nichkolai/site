@@ -1,15 +1,15 @@
-"""Authenticated top-up invoice creation for the KAZ Mini App.
+"""Top-up endpoint for the KAZ Mini App.
 
-The Mini App calls this endpoint to have the bot send a Stars invoice
-straight into the user's chat, so top-up does not depend on deep-link
-support in the ShuzaGram client.
+Self-service Stars invoices are disabled: top-ups are now credited manually
+by the administrator @silent. The endpoint keeps authentication and tells
+clients where to send the request, so an old cached client cannot create an
+invoice.
 """
 
 from __future__ import annotations
 
 import json
 import sys
-import time
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 
@@ -21,8 +21,6 @@ import bot  # noqa: E402
 import payments  # noqa: E402
 
 MAX_BODY = 20_000
-INVOICE_COOLDOWN = 4.0
-_last_invoice: dict[int, float] = {}
 
 
 class handler(BaseHTTPRequestHandler):
@@ -47,7 +45,12 @@ class handler(BaseHTTPRequestHandler):
         if self._path() not in ("/api/topup", "/api/topup/health"):
             self._send_json(404, {"ok": False, "error": "not_found"})
             return
-        self._send_json(200, {"ok": True, "service": "kaz-topup"})
+        self._send_json(200, {
+            "ok": True,
+            "service": "kaz-topup",
+            "mode": "admin",
+            "admin": bot.TOPUP_ADMIN,
+        })
 
     def do_POST(self) -> None:
         if self._path() != "/api/topup":
@@ -78,34 +81,11 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(401, {"ok": False, "error": "unauthorized"})
             return
 
-        try:
-            amount = int(data.get("amount"))
-        except (KeyError, TypeError, ValueError):
-            self._send_json(400, {"ok": False, "error": "invalid_amount"})
-            return
-
-        if amount < payments.MIN_TOPUP or amount > payments.MAX_TOPUP:
-            self._send_json(400, {"ok": False, "error": "invalid_amount"})
-            return
-
-        now = time.monotonic()
-        if now - _last_invoice.get(user_id, 0.0) < INVOICE_COOLDOWN:
-            self._send_json(429, {"ok": False, "error": "too_many_requests"})
-            return
-        _last_invoice[user_id] = now
-        if len(_last_invoice) > 5000:
-            _last_invoice.clear()
-            _last_invoice[user_id] = now
-
-        try:
-            message_id = bot.send_topup_invoice(user_id, amount)
-        except bot.BotAPIError as exc:
-            print(f"[topup] telegram api: {exc.description}", flush=True)
-            self._send_json(502, {"ok": False, "error": "invoice_failed"})
-            return
-        except Exception as exc:  # noqa: BLE001
-            print(f"[topup] unexpected: {type(exc).__name__}: {exc}", flush=True)
-            self._send_json(500, {"ok": False, "error": "internal_error"})
-            return
-
-        self._send_json(200, {"ok": True, "message_id": message_id})
+        # Self-service Stars invoices are disabled: the administrator credits
+        # top-ups manually. An old cached client must not create an invoice.
+        self._send_json(410, {
+            "ok": False,
+            "error": "topup_via_admin",
+            "admin": bot.TOPUP_ADMIN,
+            "link": bot.TOPUP_ADMIN_LINK,
+        })

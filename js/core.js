@@ -13,6 +13,9 @@
   const DEFAULT_TOPUP = 500;
   // ShuzaGram bot links use sgq.me; t.me links open the wrong client.
   const BOT_LINK = "https://sgq.me/kazbot";
+  // Top-ups are handled manually by this administrator.
+  const TOPUP_ADMIN = "silent";
+  const TOPUP_ADMIN_LINK = `https://sgq.me/${TOPUP_ADMIN}`;
   const MAX_HISTORY = 100;
 
   const GAME_VIEWS = new Set(["slots", "blackjack", "roulette", "mines", "crash", "upgrader"]);
@@ -354,7 +357,7 @@
     if (!state.purchases.length) {
       const empty = document.createElement("p");
       empty.className = "empty-inline";
-      empty.textContent = "Пополнений пока нет. Баланс можно пополнить за ShuzaGram Stars.";
+      empty.textContent = "Пополнений пока нет. Пополнить баланс можно через администратора @silent.";
       list.append(empty);
       return;
     }
@@ -366,7 +369,7 @@
         <span class="recent-icon topup">${iconMarkup("#i-plus")}</span>
         <div class="history-title">
           <strong>Пополнение +${formatStars(purchase.amount)} ★</strong>
-          <span>ShuzaGram Stars · 1 ★ = 1 Star</span>
+          <span>Через администратора @silent</span>
           <small>${escapeHtml(historyDate(purchase.at))}</small>
         </div>
         <span class="withdraw-status credited">Зачислено</span>
@@ -782,7 +785,9 @@
   function openTopup() {
     lastCreditAt = 0;
     const input = document.getElementById("topupAmount");
+    const submit = document.getElementById("topupSubmitBtn");
     if (input) input.value = String(DEFAULT_TOPUP);
+    if (submit) submit.textContent = "Отправить заявку @silent";
     updateTopupUI();
     openModal("modalTopup");
   }
@@ -798,7 +803,7 @@
     if (submit) submit.disabled = !valid;
     if (footnote) {
       footnote.textContent = valid
-        ? "После оплаты вернитесь в KAZ — баланс обновится"
+        ? "Заявку обработает администратор @silent"
         : `Введите сумму от ${MIN_TOPUP} до ${formatStars(MAX_TOPUP)} ★`;
     }
   }
@@ -869,152 +874,76 @@
     return Boolean((telegram && telegram.initData) || sessionToken());
   }
 
-  async function requestInvoice(amount) {
-    if (!hasAuth()) return false;
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 10000);
+  function topupRequestText(amount) {
+    const user = telegramUser();
+    const uid = user && user.id ? ` · ID ${user.id}` : "";
+    return `Пополнение KAZ: ${formatStars(amount)} ★${uid}`;
+  }
+
+  function openTopupAdminChat(amount) {
+    const url = `${TOPUP_ADMIN_LINK}?text=${encodeURIComponent(topupRequestText(amount))}`;
+    if (tryOpenTopupLink(url)) return true;
     try {
-      const response = await fetch("/api/topup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-        credentials: "same-origin",
-        signal: controller.signal,
-        body: JSON.stringify(authBody({ amount }))
-      });
-      if (!response.ok) return false;
-      const payload = await response.json();
-      return Boolean(payload && payload.ok);
+      window.open(url, "_blank");
+      return true;
     } catch (error) {
       return false;
-    } finally {
-      window.clearTimeout(timer);
     }
   }
 
-  async function submitTopup() {
+  function submitTopup() {
     const input = document.getElementById("topupAmount");
     const amount = Math.round(safeNumber(input && input.value));
     if (amount < MIN_TOPUP || amount > MAX_TOPUP) {
       toast("Проверьте сумму", `Введите от ${MIN_TOPUP} до ${formatStars(MAX_TOPUP)} ★.`, "error");
-      return;
-    }
-    if (!telegram) {
-      try {
-        window.open(`${BOT_LINK}?start=topup_${amount}`, "_blank");
-        toast("Откройте чат бота", "Счёт на пополнение создаётся в чате с ботом.", "info");
-      } catch (error) {
-        toast("Откройте через ShuzaGram", "Пополнение доступно в Mini App по кнопке бота.", "error");
-      }
       return;
     }
 
     const button = document.getElementById("topupSubmitBtn");
     const footnote = document.getElementById("topupFootnote");
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Отправляем счёт…";
-    }
-    const resetButton = () => {
-      if (!button) return;
-      button.textContent = "Пополнить за Stars";
-      updateTopupUI();
-    };
 
-    // The bot sends the invoice straight into the user's chat, so the
-    // top-up does not depend on deep-link support in the client.
-    if (await requestInvoice(amount)) {
-      resetButton();
-      if (footnote) {
-        footnote.textContent = `Счёт на ${formatStars(amount)} ★ отправлен в чат с ботом · оплатите и нажмите «Проверить»`;
-      }
-      toast("Счёт отправлен", `Счёт на ${formatStars(amount)} ★ — в чате с ботом.`, "info");
-      return;
-    }
-
-    // Fallback: open the bot chat with a top-up deep link.
-    const startUrl = `${BOT_LINK}?start=topup_${amount}`;
-    if (tryOpenTopupLink(startUrl)) {
-      toast("Счёт в чате", "Откройте чат с ботом — счёт уже там.", "info");
-      window.setTimeout(resetButton, 4000);
-      return;
-    }
-
-    if (typeof telegram.sendData === "function") {
+    // A structured request reaches the bot, which forwards it to the admin
+    // with credit/reject buttons. Clients without sendData fall back to a
+    // chat link to @silent.
+    if (telegram && typeof telegram.sendData === "function") {
       try {
         telegram.sendData(JSON.stringify({
           type: "topup",
           amount,
-          at: Date.now()
+          id: `topup-${Date.now()}-${randomInt(100000)}`
         }));
-        toast("Счёт отправлен", "Оплатите его в чате с ботом и вернитесь в KAZ.", "info");
-        window.setTimeout(resetButton, 4000);
+        if (footnote) {
+          footnote.textContent = `Заявка на ${formatStars(amount)} ★ отправлена администратору @silent`;
+        }
+        if (button) button.textContent = "Заявка отправлена";
+        toast("Заявка отправлена", `Администратор @silent зачислит ${formatStars(amount)} ★.`, "info");
         return;
       } catch (error) {
-        /* Fall through to the browser link. */
+        /* Fall back to opening the admin chat. */
       }
     }
 
-    try {
-      window.open(startUrl, "_blank");
-      toast("Откройте чат бота", "Счёт на пополнение создаётся в чате с ботом.", "info");
-      window.setTimeout(resetButton, 4000);
-    } catch (error) {
-      resetButton();
-      toast("Не удалось открыть оплату", "Попробуйте ещё раз или напишите администратору.", "error");
+    if (openTopupAdminChat(amount)) {
+      if (footnote) footnote.textContent = `Напишите @silent: ${formatStars(amount)} ★`;
+      toast("Чат @silent", "Отправьте администратору сумму пополнения.", "info");
+      return;
     }
+
+    toast("Не удалось открыть чат", `Напишите администратору @silent вручную: ${formatStars(amount)} ★.`, "error");
   }
 
-  function openTopupChat() {
+  function openTopupAdmin() {
     const input = document.getElementById("topupAmount");
     const amount = Math.round(safeNumber(input && input.value));
     if (amount < MIN_TOPUP || amount > MAX_TOPUP) {
       toast("Проверьте сумму", `Введите от ${MIN_TOPUP} до ${formatStars(MAX_TOPUP)} ★.`, "error");
       return;
     }
-    const startUrl = `${BOT_LINK}?start=topup_${amount}`;
-    if (tryOpenTopupLink(startUrl)) {
-      closeModal("modalTopup");
+    if (!openTopupAdminChat(amount)) {
+      toast("Не удалось открыть чат", "Напишите администратору @silent вручную.", "error");
       return;
     }
-    try {
-      window.open(startUrl, "_blank");
-      closeModal("modalTopup");
-    } catch (error) {
-      toast("Не удалось открыть чат", "Напишите боту /buy " + amount + " вручную.", "error");
-    }
-  }
-
-  async function checkTopup() {
-    const button = document.getElementById("topupCheckBtn");
-    if (!button) return;
-    button.disabled = true;
-    button.textContent = "Проверяем оплату…";
-    const credited = await refreshState(true);
-    button.disabled = false;
-    button.textContent = "Уже оплатил · проверить";
-    if (credited > 0) {
-      closeModal("modalTopup");
-      return;
-    }
-    if (!lastSyncProblem && lastCreditAt > 0) {
-      // Платёж уже зачислен при возврате в приложение — не показываем «не найден».
-      closeModal("modalTopup");
-      toast("Баланс уже пополнен", `Сейчас на балансе ${formatStars(state.balance)} ★.`, "info");
-      return;
-    }
-    const problems = {
-      noauth: ["Не удалось определить аккаунт", "Откройте KAZ кнопкой «Открыть KAZ» из чата с ботом (команда /start) и нажмите проверку снова."],
-      unauthorized: ["Сессия устарела", "Откройте KAZ заново кнопкой из чата с ботом (команда /start)."],
-      storage_unavailable: ["Хранилище платежей недоступно", "Платёж не потерян. Попробуйте через минуту."],
-      network: ["Нет связи с сервером", "Проверьте интернет и попробуйте снова."],
-      internal_error: ["Ошибка сервера", "Попробуйте ещё раз через минуту."]
-    };
-    if (problems[lastSyncProblem]) {
-      toast(problems[lastSyncProblem][0], problems[lastSyncProblem][1], "info");
-      return;
-    }
-    toast("Платёж пока не найден", "Если оплата прошла, подождите несколько секунд и попробуйте снова.", "info");
+    closeModal("modalTopup");
   }
 
   /* ---------- Server state ---------- */
@@ -1328,8 +1257,7 @@
 
     document.getElementById("topupAmount")?.addEventListener("input", updateTopupUI);
     document.getElementById("topupSubmitBtn")?.addEventListener("click", submitTopup);
-    document.getElementById("topupChatBtn")?.addEventListener("click", openTopupChat);
-    document.getElementById("topupCheckBtn")?.addEventListener("click", checkTopup);
+    document.getElementById("topupAdminBtn")?.addEventListener("click", openTopupAdmin);
 
     const withdrawAmount = document.getElementById("withdrawAmount");
     withdrawAmount?.addEventListener("input", updateWithdrawUI);

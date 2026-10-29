@@ -100,6 +100,9 @@ ADMIN_IDS = [
 MIN_TOPUP = payments.MIN_TOPUP
 MAX_TOPUP = payments.MAX_TOPUP
 DEFAULT_TOPUP = payments.DEFAULT_TOPUP
+# Top-ups are handled manually by this administrator.
+TOPUP_ADMIN = (os.environ.get("TOPUP_ADMIN", "").strip().lstrip("@") or "silent")
+TOPUP_ADMIN_LINK = f"https://sgq.me/{TOPUP_ADMIN}"
 
 
 class BotAPIError(RuntimeError):
@@ -226,14 +229,14 @@ WELCOME = (
     "<b>KAZ</b> — казино на виртуальные звёзды.\n\n"
     "На старте — <b>50 ★</b>, ежедневный бонус — <b>10 ★</b>.\n"
     "Слоты, блэкджек, рулетка, мины, краш и апгрейд.\n"
-    "Пополнение — за ShuzaGram Stars, <b>1 ★ = 1 Star</b>."
+    "Пополнение — только через администратора @silent."
 )
 
 HELP = (
     "<b>Команды</b>\n"
     "/start — открыть казино\n"
     "/play — кнопка запуска Mini App\n"
-    "/buy 500 — счёт на пополнение (по умолчанию 500 ★)\n"
+    "/buy 500 — заявка на пополнение через @silent (по умолчанию 500 ★)\n"
     "/stars — как работают звёзды\n"
     "/id — ваш ShuzaGram ID (для связи с администратором)\n"
     "/help — эта справка\n\n"
@@ -242,11 +245,11 @@ HELP = (
 
 STARS = (
     "<b>Звёзды KAZ</b>\n\n"
-    "★ — внутренняя валюта приложения. Пополнение идёт за ShuzaGram Stars:\n"
-    "<b>1 ★ = 1 ShuzaGram Star</b>, минимум — <b>1 ★</b>.\n"
+    "★ — внутренняя валюта приложения. Пополнение теперь только через "
+    f"администратора @{TOPUP_ADMIN}: напишите ему сумму, и он зачислит звёзды "
+    "вручную.\n"
     "Вывод оформляется заявкой от <b>500 ★</b>: бот сам определяет ваш "
-    "профиль, а заявка уходит администратору на ручную проверку.\n"
-    "После оплаты откройте приложение — баланс синхронизируется автоматически."
+    "профиль, а заявка уходит администратору на ручную проверку."
 )
 
 
@@ -263,23 +266,73 @@ def parse_topup_payload(payload: str) -> int | None:
     return amount
 
 
-def send_topup_invoice(chat_id: int, amount: int) -> int | None:
-    amount = int(amount)
-    invoice_payload = f"topup:{amount}:{secrets.token_hex(8)}"
-    result = api("sendInvoice", {
-        "chat_id": chat_id,
-        "title": "Пополнение KAZ",
-        "description": (
-            f"Баланс KAZ на {amount} ★. "
-            "1 ShuzaGram Star = 1 ★. После оплаты вернитесь в приложение."
-        ),
-        "payload": invoice_payload,
-        "currency": "XTR",
-        "prices": [{"label": f"{amount} ★", "amount": amount}],
-    })
-    message_id = result.get("message_id") if isinstance(result, dict) else None
-    log(f"[bot] topup invoice sent chat={chat_id} amount={amount} message_id={message_id}")
-    return message_id
+def topup_admin_keyboard() -> dict:
+    return {"inline_keyboard": [[
+        {"text": f"💬 Написать @{TOPUP_ADMIN}", "url": TOPUP_ADMIN_LINK},
+    ]]}
+
+
+def _admin_credit(uid: int, amount: int, request_id: str) -> bool:
+    """Credit an admin-approved top-up exactly once."""
+    key = f"admin:{request_id}"
+
+    def apply(doc):
+        credits = doc.setdefault("adminCredits", [])
+        if key in credits:
+            return False, False
+        credits.append(key)
+        del credits[:-200]
+        purchases = doc.setdefault("purchases", [])
+        purchases.insert(0, {
+            "chargeId": key[:100],
+            "amount": int(amount),
+            "at": kaz_store.now_ms(),
+        })
+        del purchases[kaz_store.MAX_PURCHASES:]
+        kaz_store.credit(doc, int(amount))
+        return True, True
+
+    credited, _ = kaz_store.transact(uid, apply)
+    return bool(credited)
+
+
+def _notify_topup_admins(message: dict, amount: int, request_id: str) -> int:
+    user = message.get("from") or {}
+    user_id = user.get("id", "—")
+    username = user.get("username")
+    full_name = " ".join(
+        part for part in (user.get("first_name"), user.get("last_name")) if part
+    ).strip()
+    player = f"@{username}" if username else full_name or "без имени"
+    uid = str(user_id) if str(user_id).lstrip("-").isdigit() else ""
+
+    text = (
+        "<b>💰 Заявка на пополнение</b>\n\n"
+        f"Сумма: <b>{amount} ★</b>\n"
+        f"Игрок: {html.escape(player)}\n"
+        f"ShuzaGram ID: <code>{html.escape(str(user_id))}</code>\n"
+        f"Заявка: <code>{html.escape(request_id)}</code>\n"
+        f"Время: {time.strftime('%d.%m.%Y %H:%M')}"
+    )
+    keyboard = {"inline_keyboard": [[
+        {"text": "✅ Зачислить", "callback_data": f"topup:ok:{uid}:{amount}:{request_id}"},
+        {"text": "❌ Отклонить", "callback_data": f"topup:no:{uid}:{amount}:{request_id}"},
+    ]]}
+    delivered = 0
+    for admin_id in ADMIN_IDS:
+        admin_chat = int(admin_id) if admin_id.lstrip("-").isdigit() else admin_id
+        try:
+            api("sendMessage", {
+                "chat_id": admin_chat,
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+                "reply_markup": keyboard,
+            })
+            delivered += 1
+        except BotAPIError as exc:
+            log(f"[bot] topup: админ {admin_id}: {exc.description}")
+    return delivered
 
 
 def handle_topup_request(message: dict, chat_id: int, data: dict) -> None:
@@ -294,17 +347,28 @@ def handle_topup_request(message: dict, chat_id: int, data: dict) -> None:
             "Проверьте сумму и попробуйте ещё раз.",
         )
         return
-    try:
-        send_topup_invoice(chat_id, amount)
-    except BotAPIError as exc:
-        log(f"[bot] topup invoice: {exc.description}")
+
+    # Short id keeps callback_data under Telegram's 64-byte limit.
+    request_id = f"t{secrets.token_hex(4)}"
+    delivered = _notify_topup_admins(message, amount, request_id) if ADMIN_IDS else 0
+    if delivered:
         send_message(
             chat_id,
-            "Не удалось создать счёт на пополнение. Попробуйте позже или напишите администратору.",
+            f"Заявка на <b>{amount} ★</b> отправлена администратору "
+            f"@{TOPUP_ADMIN}. Он зачислит звёзды после проверки.\n"
+            f"Номер заявки: <code>{html.escape(request_id)}</code>",
+            topup_admin_keyboard(),
+        )
+    else:
+        send_message(
+            chat_id,
+            f"Пополнение теперь только через администратора @{TOPUP_ADMIN}. "
+            f"Напишите ему сумму — он зачислит <b>{amount} ★</b> вручную.",
+            topup_admin_keyboard(),
         )
 
 
-def handle_buy_command(chat_id: int, text: str) -> None:
+def handle_buy_command(message: dict, chat_id: int, text: str) -> None:
     parts = text.split()
     if len(parts) > 1:
         try:
@@ -320,11 +384,7 @@ def handle_buy_command(chat_id: int, text: str) -> None:
             f"Например: <code>/buy {DEFAULT_TOPUP}</code>",
         )
         return
-    try:
-        send_topup_invoice(chat_id, amount)
-    except BotAPIError as exc:
-        log(f"[bot] /buy invoice: {exc.description}")
-        send_message(chat_id, "Не удалось создать счёт. Попробуйте позже.")
+    handle_topup_request(message, chat_id, {"amount": amount})
 
 
 def handle_pre_checkout_query(query: dict) -> None:
@@ -567,6 +627,94 @@ def handle_web_app_data(message: dict, chat_id: int) -> None:
     )
 
 
+def _answer_callback(callback_id, text: str = "", alert: bool = False) -> None:
+    payload = {"callback_query_id": callback_id}
+    if text:
+        payload["text"] = text
+    if alert:
+        payload["show_alert"] = True
+    try:
+        api("answerCallbackQuery", payload)
+    except BotAPIError as exc:
+        log(f"[bot] callback: {exc.description}")
+
+
+def handle_topup_callback(callback: dict, parts: list[str], callback_id) -> None:
+    action = parts[1] if len(parts) > 1 else ""
+    player_id = parts[2] if len(parts) > 2 else ""
+    try:
+        amount = int(parts[3]) if len(parts) > 3 else 0
+    except (TypeError, ValueError):
+        amount = 0
+    request_id = parts[4] if len(parts) > 4 else ""
+
+    if (
+        action not in ("ok", "no")
+        or not player_id.lstrip("-").isdigit()
+        or amount <= 0
+        or not request_id
+    ):
+        _answer_callback(callback_id, "Заявка повреждена.", alert=True)
+        return
+
+    message = callback.get("message") or {}
+    chat_id = (message.get("chat") or {}).get("id")
+    message_id = message.get("message_id")
+    original = message.get("text") or "Заявка на пополнение"
+
+    if "✅ Зачислено" in original or "❌ Отклонено" in original:
+        _answer_callback(callback_id, "Заявка уже обработана.")
+        return
+
+    user = callback.get("from") or {}
+    username = user.get("username")
+    admin = f"@{username}" if username else "администратор"
+
+    if action == "no":
+        _answer_callback(callback_id, "Отклонено")
+        status = "❌ Отклонено"
+        try:
+            send_message(
+                int(player_id),
+                f"Заявка на пополнение на <b>{amount} ★</b> отклонена администратором.",
+            )
+        except BotAPIError as exc:
+            log(f"[bot] topup reject notify: {exc.description}")
+    else:
+        try:
+            credited = _admin_credit(int(player_id), amount, request_id)
+        except payments.PaymentStorageError as exc:
+            log(f"[bot] topup credit {request_id}: {exc}")
+            _answer_callback(callback_id, "Хранилище недоступно, попробуйте ещё раз.", alert=True)
+            return
+        if not credited:
+            _answer_callback(callback_id, "Заявка уже зачислена.")
+            status = "✅ Зачислено"
+        else:
+            _answer_callback(callback_id, "Зачислено")
+            status = f"✅ Зачислено · +{amount} ★"
+            try:
+                send_message(
+                    int(player_id),
+                    f"Баланс пополнен администратором: <b>+{amount} ★</b>.",
+                )
+            except BotAPIError as exc:
+                log(f"[bot] topup credit notify: {exc.description}")
+
+    if chat_id and message_id:
+        try:
+            api("editMessageText", {
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "text": f"{original}\n\n<b>{status}</b>\nОбработал: {html.escape(admin)}",
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+                "reply_markup": {"inline_keyboard": []},
+            })
+        except BotAPIError as exc:
+            log(f"[bot] topup edit: {exc.description}")
+
+
 def handle_callback_query(callback: dict) -> None:
     callback_id = callback.get("id")
     if not callback_id:
@@ -587,6 +735,9 @@ def handle_callback_query(callback: dict) -> None:
 
     raw_action = callback.get("data") or ""
     parts = raw_action.split(":")
+    if parts and parts[0] == "topup":
+        handle_topup_callback(callback, parts, callback_id)
+        return
     if len(parts) < 2 or parts[0] != "withdraw" or parts[1] not in ("paid", "reject"):
         try:
             api("answerCallbackQuery", {
@@ -759,7 +910,7 @@ def handle_update(update: dict) -> None:
             open_keyboard(chat_type, (message.get("from") or {}).get("id")),
         )
     elif command == "/buy":
-        handle_buy_command(chat_id, text)
+        handle_buy_command(message, chat_id, text)
     elif command == "/stars":
         send_message(chat_id, STARS)
     elif command == "/id":
@@ -795,7 +946,7 @@ def configure_bot() -> str:
             "commands": [
                 {"command": "start", "description": "Открыть KAZ"},
                 {"command": "play", "description": "Запустить Mini App"},
-                {"command": "buy", "description": "Пополнить звёзды"},
+                {"command": "buy", "description": "Пополнить через @silent"},
                 {"command": "stars", "description": "О звёздах и выводе"},
                 {"command": "id", "description": "Мой ShuzaGram ID"},
                 {"command": "help", "description": "Справка"},
