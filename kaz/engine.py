@@ -13,11 +13,30 @@ from .store import GameError
 CRASH_ACTIONS = {"crash.poll", "crash.cashout"}
 
 
+def _username_from_contact(contact: str) -> str:
+    """``@name`` from the Telegram profile, lowercased for lookups."""
+    value = str(contact or "").strip()
+    if value.startswith("@") and len(value) > 1:
+        return value[1:].lower()
+    return ""
+
+
+def _remember_username(doc: dict, username: str) -> bool:
+    if not username or doc.get("username") == username:
+        return False
+    doc["username"] = username
+    return True
+
+
 def run(user_id: int, action: str, params: dict, contact: str = "") -> dict:
     """Execute one action for one player and return result + public state."""
     if action != "state" and action not in games.HANDLERS:
         raise GameError("unknown_action", "Неизвестное действие.")
 
+    # The moment the request reached the server. For a cash-out this is fairer
+    # than the time after the Blob read: a slow read must not turn a press that
+    # happened before the crash into a loss.
+    request_stamp = store.now_ms()
     credited = 0
     if action == "state":
         try:
@@ -26,14 +45,28 @@ def run(user_id: int, action: str, params: dict, contact: str = "") -> dict:
             # The state itself must still load; purchases are retried next time.
             print(f"[engine] purchase sync: {exc}", flush=True)
 
+    username = _username_from_contact(contact)
+
     def apply(doc: dict) -> tuple[dict, bool]:
         stamp = store.now_ms()
+        if action == "crash.poll":
+            # A running poll only reads the round: writing a new revision on
+            # every 150 ms would add latency and could make the client lose
+            # the crash while Blob is busy. The crash itself is committed.
+            result = games.run_action(doc, action, params, {"now": stamp, "contact": contact})
+            changed = result.get("status") == "crashed"
+            if changed:
+                changed = _remember_username(doc, username) or changed
+            return result, changed
         changed = False
         if action not in CRASH_ACTIONS:
             changed = games.settle_expired(doc, stamp)
+        if _remember_username(doc, username):
+            changed = True
         if action == "state":
             return {"credited": credited}, changed
-        ctx = {"now": stamp, "contact": contact}
+        now = request_stamp if action == "crash.cashout" else stamp
+        ctx = {"now": now, "contact": contact}
         return games.run_action(doc, action, params, ctx), True
 
     result, doc = store.transact(user_id, apply)

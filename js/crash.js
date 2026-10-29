@@ -13,6 +13,9 @@
     .reverse()
     .find((value) => value <= Math.min(NP.getState().balance, NP.DEFAULT_BET)) || MIN_BET;
   const GROWTH = 0.22;
+  // 50× is the highest crash point: ln(50) / 0.22 ≈ 17.8 s. The cap below is
+  // a safety net so a lost poll can never leave the multiplier growing forever.
+  const MAX_ROUND_MS = 20_000;
 
   const game = {
     bet: startingBet,
@@ -20,8 +23,12 @@
     wager: 0,
     crashAt: 1,
     startedAt: 0,
+    frozenElapsed: null,
     busy: false,
     polling: false,
+    pollFailures: 0,
+    connectionLost: false,
+    settleAttempted: false,
     poller: null,
     timer: null,
     history: [],
@@ -53,9 +60,15 @@
     return `${value.toFixed(2)}×`;
   }
 
+  /** Elapsed time shown on screen; frozen while a request is in flight or the connection is lost. */
+  function displayElapsed() {
+    if ((game.busy || game.connectionLost) && game.frozenElapsed != null) return game.frozenElapsed;
+    return performance.now() - game.startedAt;
+  }
+
   function updateUI() {
     const running = game.phase === "running";
-    const elapsed = running ? performance.now() - game.startedAt : 0;
+    const elapsed = running ? displayElapsed() : 0;
     const value = running ? currentMultiplier(elapsed) : game.phase === "done" ? game.crashAt : 1;
 
     if (elements.multiplier) elements.multiplier.textContent = formatMultiplier(value);
@@ -68,7 +81,7 @@
     if (elements.betMax) elements.betMax.disabled = running || game.bet >= balance || balance < MIN_BET;
 
     if (elements.action) {
-      elements.action.disabled = game.busy;
+      elements.action.disabled = game.busy || game.connectionLost;
       if (running) {
         elements.action.textContent = `Забрать ${NP.formatStars(Math.round(game.wager * value))} ★`;
       } else if (game.phase === "done") {
@@ -171,7 +184,7 @@
     });
   }
 
-  const POLL_MS = 350;
+  const POLL_MS = 150;
 
   function describeError(error) {
     return error && error.message ? error.message : "Попробуйте ещё раз.";
@@ -198,6 +211,10 @@
     game.phase = "running";
     game.crashed = false;
     game.wager = saved.wager;
+    game.frozenElapsed = null;
+    game.pollFailures = 0;
+    game.connectionLost = false;
+    game.settleAttempted = false;
     game.startedAt = performance.now() - saved.elapsed;
     if (elements.stage) elements.stage.classList.remove("crashed");
     if (elements.status) elements.status.textContent = "Множитель растёт. Забирайте вовремя.";
@@ -242,8 +259,18 @@
     game.phase = "running";
     game.crashed = false;
     game.wager = data.result.wager;
-    // The round started on the server about half a round trip ago.
-    game.startedAt = received - (received - sent) / 2 - data.result.elapsed;
+    game.frozenElapsed = null;
+    game.pollFailures = 0;
+    game.connectionLost = false;
+    game.settleAttempted = false;
+    // Use the elapsed time from the committed state: it is measured right
+    // before the response is serialized, so the local clock does not inherit
+    // the Blob write latency.
+    const active = data.state && data.state.active && data.state.active.crash;
+    const serverElapsed = active && Number.isFinite(Number(active.elapsed))
+      ? Math.max(0, Number(active.elapsed))
+      : Math.max(0, Number(data.result.elapsed) || 0);
+    game.startedAt = received - (received - sent) / 2 - serverElapsed;
     game.busy = false;
     NP.applyState(data.state);
     unlock();
@@ -256,8 +283,18 @@
   }
 
   function tick() {
-    if (game.phase !== "running") return;
+    if (game.phase !== "running" || game.busy || game.connectionLost) return;
     const elapsed = performance.now() - game.startedAt;
+    if (elapsed >= MAX_ROUND_MS) {
+      // The server cannot keep a round running longer than 50×. If a poll was
+      // lost, settle instead of animating forever. Try only once so a network
+      // outage cannot turn this into a request storm.
+      if (!game.settleAttempted) {
+        game.settleAttempted = true;
+        cashOut(true);
+      }
+      return;
+    }
     const value = currentMultiplier(elapsed);
     if (elements.multiplier) elements.multiplier.textContent = formatMultiplier(value);
     if (elements.action && !game.busy) {
@@ -274,13 +311,30 @@
     const sent = performance.now();
     let data;
     try {
-      data = await NP.api("crash.poll");
+      // A read-only poll should answer quickly. Do not let a hung request
+      // keep the multiplier growing for the full 20 s API timeout.
+      data = await NP.api("crash.poll", {}, { timeout: 6000 });
     } catch (error) {
       game.polling = false;
-      if (error.code === "no_round" && game.phase === "running") await roundEndedElsewhere();
+      if (game.phase !== "running") return;
+      if (error.code === "no_round") {
+        await roundEndedElsewhere();
+        return;
+      }
+      game.pollFailures += 1;
+      if (game.pollFailures >= 5 && !game.connectionLost) {
+        game.connectionLost = true;
+        game.frozenElapsed = performance.now() - game.startedAt;
+        if (elements.status) {
+          elements.status.textContent = "Связь с сервером нестабильна. Проверяем результат…";
+        }
+        updateUI();
+      }
       return;
     }
     game.polling = false;
+    const wasDisconnected = game.connectionLost;
+    if (game.pollFailures > 0) game.pollFailures = 0;
     if (game.phase !== "running" || game.busy) return;
 
     const result = data.result;
@@ -288,16 +342,31 @@
       showCrash(result, data);
       return;
     }
-    // Keep the local clock close to the server clock.
+    // Keep the local clock close to the server clock. The state's elapsed is
+    // measured at response serialization, unlike result.elapsed which is
+    // measured before the transaction commits.
+    const active = data.state && data.state.active && data.state.active.crash;
+    const serverElapsed = active && Number.isFinite(Number(active.elapsed))
+      ? Math.max(0, Number(active.elapsed))
+      : Math.max(0, Number(result.elapsed) || 0);
     const received = performance.now();
-    const serverStart = received - (received - sent) / 2 - result.elapsed;
-    if (Math.abs(serverStart - game.startedAt) > 150) game.startedAt = serverStart;
+    const serverStart = received - (received - sent) / 2 - serverElapsed;
+    if (Math.abs(serverStart - game.startedAt) > 80) game.startedAt = serverStart;
+
+    if (wasDisconnected) {
+      game.connectionLost = false;
+      game.frozenElapsed = null;
+      if (elements.status) elements.status.textContent = "Множитель растёт. Забирайте вовремя.";
+      updateUI();
+    }
   }
 
   async function roundEndedElsewhere() {
     stopTimers();
     game.phase = "done";
     game.crashed = true;
+    game.frozenElapsed = null;
+    game.connectionLost = false;
     await NP.refreshState(true);
     if (elements.status) elements.status.textContent = "Раунд завершён · результат в истории";
     updateUI();
@@ -307,6 +376,8 @@
     stopTimers();
     game.phase = "done";
     game.crashed = true;
+    game.frozenElapsed = null;
+    game.connectionLost = false;
     game.crashAt = result.crashAt;
     const value = result.crashAt;
     const duration = Math.log(Math.max(1.0001, value)) / GROWTH * 1000;
@@ -331,6 +402,7 @@
 
   async function cashOut(auto = false) {
     if (game.phase !== "running" || game.busy) return;
+    game.frozenElapsed = performance.now() - game.startedAt;
     game.busy = true;
     if (elements.action) elements.action.disabled = true;
     const unlock = NP.lockSync();
@@ -341,6 +413,7 @@
     } catch (error) {
       unlock();
       game.busy = false;
+      game.frozenElapsed = null;
       if (error.code === "no_round") await roundEndedElsewhere();
       else {
         NP.toast("Не удалось забрать", describeError(error), "error");
@@ -351,6 +424,7 @@
 
     const result = data.result;
     game.busy = false;
+    game.frozenElapsed = null;
     if (result.status === "crashed") {
       unlock();
       showCrash(result, data);

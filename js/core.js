@@ -803,7 +803,7 @@
     if (submit) submit.disabled = !valid;
     if (footnote) {
       footnote.textContent = valid
-        ? "Заявку обработает администратор @silent"
+        ? "Откроется чат с @silent и готовым текстом"
         : `Введите сумму от ${MIN_TOPUP} до ${formatStars(MAX_TOPUP)} ★`;
     }
   }
@@ -823,7 +823,7 @@
         telegram.openLink(url);
         return true;
       } catch (error) {
-        /* Fall through to sendData/browser link. */
+        /* Fall through to the browser link. */
       }
     }
     return false;
@@ -899,33 +899,13 @@
       return;
     }
 
-    const button = document.getElementById("topupSubmitBtn");
     const footnote = document.getElementById("topupFootnote");
 
-    // A structured request reaches the bot, which forwards it to the admin
-    // with credit/reject buttons. Clients without sendData fall back to a
-    // chat link to @silent.
-    if (telegram && typeof telegram.sendData === "function") {
-      try {
-        telegram.sendData(JSON.stringify({
-          type: "topup",
-          amount,
-          id: `topup-${Date.now()}-${randomInt(100000)}`
-        }));
-        if (footnote) {
-          footnote.textContent = `Заявка на ${formatStars(amount)} ★ отправлена администратору @silent`;
-        }
-        if (button) button.textContent = "Заявка отправлена";
-        toast("Заявка отправлена", `Администратор @silent зачислит ${formatStars(amount)} ★.`, "info");
-        return;
-      } catch (error) {
-        /* Fall back to opening the admin chat. */
-      }
-    }
-
+    // Top-up requests are sent directly to the administrator's chat with a
+    // ready-to-send message.
     if (openTopupAdminChat(amount)) {
-      if (footnote) footnote.textContent = `Напишите @silent: ${formatStars(amount)} ★`;
-      toast("Чат @silent", "Отправьте администратору сумму пополнения.", "info");
+      if (footnote) footnote.textContent = `Отправьте @silent сообщение: ${formatStars(amount)} ★`;
+      toast("Чат @silent", "Отправьте готовое сообщение администратору.", "info");
       return;
     }
 
@@ -969,10 +949,11 @@
     };
   }
 
-  async function api(action, params = {}) {
+  async function api(action, params = {}, options = {}) {
     if (!hasAuth()) throw new ApiError("noauth", API_MESSAGES.noauth, 0);
     const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 20000);
+    const timeout = Math.max(1000, Number(options.timeout) || 20000);
+    const timer = window.setTimeout(() => controller.abort(), timeout);
     let response;
     try {
       response = await fetch("/api/game", {

@@ -497,6 +497,9 @@ def crash_poll(doc: dict, params: dict, ctx: dict) -> dict:
 def crash_cashout(doc: dict, params: dict, ctx: dict) -> dict:
     game = _crash_active(doc)
     elapsed = ctx["now"] - game["startedAt"]
+    if elapsed < 0:
+        # A delayed request from a previous round must not cash out a new one.
+        raise GameError("no_round", "Раунд не найден.")
     if elapsed >= _crash_duration_ms(game["crashAt"]):
         return _crash_lost(doc, game, ctx["now"])
     multiplier = math.exp(CRASH_GROWTH * max(0, elapsed) / 1000)

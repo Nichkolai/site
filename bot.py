@@ -916,14 +916,7 @@ def handle_update(update: dict) -> None:
     elif command == "/id":
         user = message.get("from") or {}
         user_id = html.escape(str(user.get("id", "—")))
-        send_message(
-            chat_id,
-            f"Ваш ShuzaGram ID: <code>{user_id}</code>\n\n"
-            "Чтобы получать заявки на вывод, добавьте ID в <code>ADMIN_IDS</code> "
-            "в Vercel Environment Variables или в локальном <code>.env</code>:\n"
-            f"<code>ADMIN_IDS={user_id}</code>\n"
-            "Несколько ID — через запятую.",
-        )
+        send_message(chat_id, f"Ваш ShuzaGram ID: <code>{user_id}</code>")
     elif command == "/help":
         send_message(chat_id, HELP)
     else:

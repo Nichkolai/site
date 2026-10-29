@@ -301,6 +301,64 @@ class GameTests(unittest.TestCase):
         self.assertNotIn("crash", state["active"])
         self.assertEqual(state["balance"], 90)
 
+    def test_crash_poll_does_not_write_while_running(self):
+        self.give(19, 1000)
+        self.act(19, "crash.start", bet=10)
+
+        def force(d):
+            d["active"]["crash"]["crashAt"] = 50.0
+            return None, True
+
+        store.transact(19, force)
+        before = len(STORE.files)
+        out = self.act(19, "crash.poll")
+        self.assertEqual(out["result"]["status"], "running")
+        self.assertEqual(len(STORE.files), before)
+
+    def test_crash_cashout_uses_request_arrival_time(self):
+        fake_now = [1_000_000]
+        original_now = store.now_ms
+        original_transact = store.transact
+        try:
+            store.now_ms = lambda: fake_now[0]
+            self.give(22, 1000)
+            self.act(22, "crash.start", bet=10)
+
+            def force(d):
+                d["active"]["crash"]["crashAt"] = 1.5
+                d["active"]["crash"]["startedAt"] = fake_now[0] - 1000
+                return None, True
+
+            store.transact(22, force)
+
+            def slow(uid, fn):
+                # Simulate a slow Blob read after the request has arrived.
+                fake_now[0] += 1000
+                return original_transact(uid, fn)
+
+            store.transact = slow
+            out = self.act(22, "crash.cashout")
+            self.assertEqual(out["result"]["status"], "cashed")
+        finally:
+            store.now_ms = original_now
+            store.transact = original_transact
+
+    def test_username_is_saved_for_admin_lookup(self):
+        out = engine.run(23, "state", {}, "@Some_User")
+        self.assertEqual(out["state"]["balance"], 50)
+        self.assertEqual(store.read_doc(23)["username"], "some_user")
+
+        from kaz import admin_panel
+
+        admin_panel.setup(
+            api=lambda *args, **kwargs: None,
+            send_message=lambda *args, **kwargs: None,
+            log=lambda *args, **kwargs: None,
+            api_error=Exception,
+            admin_ids=["999"],
+        )
+        self.assertEqual(admin_panel._find_uid("@some_user"), 23)
+
     def test_upgrader_honest_chance(self):
         self.give(17, 1000)
         out = self.act(17, "upgrader.play", bet=10, target=2)

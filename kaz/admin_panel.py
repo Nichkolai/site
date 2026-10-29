@@ -6,9 +6,10 @@
 
 Команды:
     /admin                  — панель с кнопками
-    /give <id|me> <сумма>   — пополнить баланс
-    /take <id|me> <сумма>   — списать с баланса
-    /balance [id|me]        — показать баланс
+    /give <id|@username|me> <сумма> — пополнить баланс
+    /take <id|@username|me> <сумма> — списать с баланса
+    /balance [id|@username|me]      — показать баланс
+    /id <@username|id>      — найти игрока по юзернейму или ID
     /stats                  — статистика по игрокам, пополнениям и выводам
     /cancel                 — отменить текущий ввод
 
@@ -76,12 +77,61 @@ def _parse_amount(text: str) -> int | None:
         return None
 
 
+_USERNAME_RE = re.compile(r"^[a-z0-9_]{3,32}$")
+_USER_INDEX_TTL = 15
+_user_index_cache: dict = {"at": 0.0, "map": {}}
+
+
+def _normalize_username(value) -> str:
+    return str(value or "").strip().lstrip("@").lower()
+
+
+def _find_uid(username: str) -> int | None:
+    name = _normalize_username(username)
+    if not name:
+        return None
+    try:
+        return _username_index().get(name)
+    except Exception as exc:  # noqa: BLE001
+        _log(f"[admin] username lookup {name}: {exc}")
+        return None
+
+
+def _username_index(force: bool = False) -> dict[str, int]:
+    """username -> uid for players whose profile has a saved username."""
+    now = time.time()
+    cached = _user_index_cache.get("map") or {}
+    if not force and cached and now - _user_index_cache.get("at", 0.0) < _USER_INDEX_TTL:
+        return cached
+    docs, _found, _failed = _load_docs()
+    mapping: dict[str, int] = {}
+    for uid, doc in docs.items():
+        name = _normalize_username(doc.get("username"))
+        if name:
+            mapping[name] = int(uid)
+    _user_index_cache.update(at=now, map=mapping)
+    return mapping
+
+
+def _read_player(uid: int) -> dict | None:
+    """Read one player without creating a fresh profile for an unknown ID."""
+    blob = payments._blob()
+    revisions = kaz_store._list_revisions(blob, uid)
+    if not revisions:
+        return None
+    _rev, doc = kaz_store._read(blob, uid, revisions)
+    return doc
+
+
 def _parse_uid(text: str, admin_id: int) -> int | None:
     value = str(text).strip().lower()
     if value in ("me", "я", "себе"):
         return int(admin_id)
     if value.isdigit():
         return int(value)
+    name = _normalize_username(value)
+    if name and _USERNAME_RE.match(name):
+        return _find_uid(name)
     return None
 
 
@@ -138,8 +188,10 @@ PANEL_TEXT = (
     "<b>🛠 Админ-панель KAZ</b>\n\n"
     "Выберите действие или используйте команды:\n"
     "<code>/give 123456789 500000</code> — пополнить\n"
+    "<code>/give @username 500</code> — пополнить по юзернейму\n"
     "<code>/take 123456789 1000</code> — списать\n"
-    "<code>/balance 123456789</code> — баланс игрока\n"
+    "<code>/balance @username</code> — баланс игрока\n"
+    "<code>/id @username</code> — узнать ID по юзернейму\n"
     "<code>/stats</code> — статистика\n"
     "Вместо ID можно написать <code>me</code> — это вы."
 )
@@ -175,6 +227,69 @@ def _show_balance(chat_id: int, uid: int) -> None:
         _send(chat_id, "Не удалось прочитать баланс: хранилище недоступно.")
         return
     _send(chat_id, f"Игрок <code>{uid}</code>\nБаланс: <b>{_fmt(balance)} ★</b>", _menu_kb())
+
+
+def _show_username_lookup(chat_id: int, query: str) -> None:
+    value = str(query or "").strip()
+    if not value:
+        _send(chat_id, "Формат: <code>/id @username</code> или <code>/id 123456789</code>.", _menu_kb())
+        return
+
+    if value.isdigit():
+        uid = int(value)
+        try:
+            doc = _read_player(uid)
+        except Exception as exc:  # noqa: BLE001
+            _log(f"[admin] read uid={uid}: {exc}")
+            _send(chat_id, "Не удалось прочитать профиль: хранилище недоступно.", _menu_kb())
+            return
+        if doc is None:
+            _send(chat_id, f"Игрок с ID <code>{uid}</code> не найден.", _menu_kb())
+            return
+        name = _normalize_username(doc.get("username"))
+        balance = _int(doc.get("balance"))
+        if name:
+            _send(
+                chat_id,
+                f"ID <code>{uid}</code> → @{html.escape(name)}\n"
+                f"Баланс: <b>{_fmt(balance)} ★</b>",
+                _menu_kb(),
+            )
+        else:
+            _send(
+                chat_id,
+                f"ID <code>{uid}</code>\n"
+                "Юзернейм не сохранён — игрок ещё не открывал приложение.\n"
+                f"Баланс: <b>{_fmt(balance)} ★</b>",
+                _menu_kb(),
+            )
+        return
+
+    name = _normalize_username(value)
+    if not _USERNAME_RE.match(name):
+        _send(chat_id, "Укажите @username или числовой ID.", _menu_kb())
+        return
+    uid = _find_uid(name)
+    if uid is None:
+        _send(
+            chat_id,
+            f"@{html.escape(name)} не найден.\n\n"
+            "Бот знает только игроков, которые открывали приложение. "
+            "Попросите их открыть KAZ или написать /start, затем повторите.",
+            _menu_kb(),
+        )
+        return
+    try:
+        balance = _read_balance(uid)
+    except Exception as exc:  # noqa: BLE001
+        _log(f"[admin] read balance uid={uid}: {exc}")
+        balance = 0
+    _send(
+        chat_id,
+        f"@{html.escape(name)} → <code>{uid}</code>\n"
+        f"Баланс: <b>{_fmt(balance)} ★</b>",
+        _menu_kb(),
+    )
 
 
 def _start_confirm(admin_id: int, chat_id: int, uid: int, delta: int) -> None:
@@ -457,7 +572,7 @@ def handle_message(message: dict) -> bool:
         parts = text.split()
         command = parts[0].split("@", 1)[0].lower()
         args = parts[1:]
-        if command not in ("/admin", "/give", "/take", "/balance", "/cancel", "/stats"):
+        if command not in ("/admin", "/give", "/take", "/balance", "/cancel", "/stats", "/id"):
             return False
         _pending.pop(admin_id, None)
 
@@ -467,20 +582,25 @@ def handle_message(message: dict) -> bool:
             _send_panel(chat_id)
         elif command == "/stats":
             _send_stats(chat_id)
+        elif command == "/id":
+            if not args:
+                # Let bot.py show the admin's own ID.
+                return False
+            _show_username_lookup(chat_id, args[0])
         elif command == "/balance":
             uid = _parse_uid(args[0], admin_id) if args else admin_id
             if uid is None:
-                _send(chat_id, "Укажите ID числом или <code>me</code>.")
+                _send(chat_id, "Укажите ID числом, <code>@username</code> или <code>me</code>.")
             else:
                 _show_balance(chat_id, uid)
         else:  # /give, /take
             if len(args) != 2:
-                _send(chat_id, f"Формат: <code>{command} 123456789 500000</code>")
+                _send(chat_id, f"Формат: <code>{command} 123456789 500000</code> или <code>{command} @username 500</code>")
                 return True
             uid = _parse_uid(args[0], admin_id)
             amount = _parse_amount(args[1])
             if uid is None or amount is None or amount == 0:
-                _send(chat_id, f"Формат: <code>{command} 123456789 500000</code>")
+                _send(chat_id, f"Формат: <code>{command} 123456789 500000</code> или <code>{command} @username 500</code>")
                 return True
             delta = abs(amount) if command == "/give" else -abs(amount)
             _start_confirm(admin_id, chat_id, uid, delta)
@@ -493,7 +613,7 @@ def handle_message(message: dict) -> bool:
     if pending["step"] == "uid":
         uid = _parse_uid(text, admin_id)
         if uid is None:
-            _send(chat_id, "Нужен числовой ID или <code>me</code>. Для выхода — /cancel.")
+            _send(chat_id, "Нужен числовой ID, <code>@username</code> или <code>me</code>. Для выхода — /cancel.")
             return True
         if pending["mode"] == "chk":
             _pending.pop(admin_id, None)

@@ -55,6 +55,7 @@ def new_doc(user_id: int) -> dict:
     return {
         "v": 1,
         "uid": int(user_id),
+        "username": "",
         "balance": START_BALANCE,
         "games": 0,
         "wagered": 0,
