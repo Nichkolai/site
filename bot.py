@@ -253,6 +253,26 @@ STARS = (
 )
 
 
+def remember_user(user: dict | None) -> None:
+    """Save the Telegram username so admins can resolve it to a user ID."""
+    user = user or {}
+    uid = user.get("id")
+    username = str(user.get("username") or "").strip().lstrip("@").lower()
+    if not uid or not username:
+        return
+
+    def apply(doc):
+        if doc.get("username") == username:
+            return None, False
+        doc["username"] = username
+        return None, True
+
+    try:
+        kaz_store.transact(int(uid), apply)
+    except Exception as exc:  # noqa: BLE001 - /start must work without storage
+        log(f"[bot] remember username {uid}: {exc}")
+
+
 def parse_topup_payload(payload: str) -> int | None:
     parts = str(payload or "").split(":")
     if len(parts) < 2 or parts[0] != "topup":
@@ -896,6 +916,8 @@ def handle_update(update: dict) -> None:
 
     command = text.split()[0].split("@", 1)[0].lower()
     chat_type = chat.get("type", "private")
+    if command in ("/start", "/play", "/buy", "/id"):
+        remember_user(message.get("from") or {})
     if command in ("/start", "/play"):
         start_parts = text.split(maxsplit=1)
         if command == "/start" and len(start_parts) > 1:
