@@ -932,20 +932,6 @@
     toast("Не удалось открыть чат", `Напишите администратору @silent вручную: ${formatStars(amount)} ★.`, "error");
   }
 
-  function openTopupAdmin() {
-    const input = document.getElementById("topupAmount");
-    const amount = Math.round(safeNumber(input && input.value));
-    if (amount < MIN_TOPUP || amount > MAX_TOPUP) {
-      toast("Проверьте сумму", `Введите от ${MIN_TOPUP} до ${formatStars(MAX_TOPUP)} ★.`, "error");
-      return;
-    }
-    if (!openTopupAdminChat(amount)) {
-      toast("Не удалось открыть чат", "Напишите администратору @silent вручную.", "error");
-      return;
-    }
-    closeModal("modalTopup");
-  }
-
   /* ---------- Server state ---------- */
   class ApiError extends Error {
     constructor(code, message, status) {
@@ -1257,7 +1243,6 @@
 
     document.getElementById("topupAmount")?.addEventListener("input", updateTopupUI);
     document.getElementById("topupSubmitBtn")?.addEventListener("click", submitTopup);
-    document.getElementById("topupAdminBtn")?.addEventListener("click", openTopupAdmin);
 
     const withdrawAmount = document.getElementById("withdrawAmount");
     withdrawAmount?.addEventListener("input", updateWithdrawUI);
