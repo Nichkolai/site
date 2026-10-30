@@ -110,7 +110,7 @@ ADMIN_IDS=111111111,222222222
 
 - Сайт: **https://site-ten-sepia-56.vercel.app**
 - Репозиторий: приватный `Nichkolai/site`, ветка `main`.
-- Vercel project: `team-6309/site`.
+- Vercel project: `team-6d62/site`.
 - Бот: serverless-функция `api/telegram.py` на том же домене. Постоянный ПК
   или VPS для приёма заявок не нужен.
 - Webhook: **https://site-ten-sepia-56.vercel.app/api/telegram**
@@ -146,22 +146,41 @@ vercel.json
 | `SHUZA_API_BASE` | Config | `https://api.shuzagram.com` |
 | `WEBHOOK_SECRET` | Secret | случайная строка, **обязательна**: проверяется в `X-Telegram-Bot-Api-Secret-Token`, без неё webhook отвечает 503 |
 | `SESSION_SECRET` | Secret | отдельный ключ подписи сессионных токенов (случайная строка). Без него используются `WEBHOOK_SECRET`/`BOT_TOKEN`. Старые токены остаются валидными; `SESSION_REJECT_LEGACY=1` отключает их через 30 дней после задания ключа |
-| `BLOB_STORE_ID` | Config | добавляется автоматически при подключении Blob-хранилища `kaz-payments` |
+| `BLOB_STORE_ID` | Config | ID Blob-хранилища `kaz-payments` в `team-6d62` |
+| `BLOB_READ_WRITE_TOKEN` | Secret | добавляется автоматически при подключении Blob-хранилища; хранится только в Vercel |
 | `VERCEL_OIDC_TOKEN` | Runtime | выдаётся Vercel автоматически; используется Python SDK `vercel-blob` |
 
-Хранилище `kaz-payments` создано в Vercel (private, регион `iad1`) и
-подключено к Production/Preview. OIDC не требует `BLOB_READ_WRITE_TOKEN` в
-репозитории. Не добавляйте `.env` в Git и не коммитьте значения секретов.
-Локальный `.env` остаётся только на машине разработчика.
+Хранилище `kaz-payments` создано в новом team `team-6d62` (private, регион
+`iad1`) и подключено к Production/Preview проекта `site`. Vercel добавил
+`BLOB_STORE_ID` и `BLOB_READ_WRITE_TOKEN`; дублировать их в репозитории не нужно.
+Старое хранилище из `team-6309` не используется. Не добавляйте `.env` в Git и не
+коммитьте значения секретов. Локальный `.env` остаётся только на машине
+разработчика.
 
 ### Обновление
 
-После изменений в веб-части или `api/` сделайте commit и push в
-`main`. Vercel пересоберёт сайт и функцию автоматически. Для ручного деплоя:
+Автоматические Git-деплои для этого проекта отключены. Кроме того, на Hobby
+Vercel разрешает деплой только если автор коммита совпадает с владельцем team.
+Коммиты репозитория сделаны от `Nichkolai`, а новый team принадлежит
+`fast75211@gmail.com`, поэтому деплой прямо из репозитория блокируется
+(`commit author doesn't have permission`). Рабочий способ — деплой из копии
+без `.git` и `.env`:
 
 ```powershell
+$src = "C:\Users\Admin\Documents\KAZ"
+$dst = Join-Path $env:TEMP "kaz-deploy"
+Remove-Item -Recurse -Force $dst -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force $dst | Out-Null
+Get-ChildItem $src -File -Force | Where-Object { $_.Name -ne '.env' } | Copy-Item -Destination $dst
+Get-ChildItem $src -Directory -Force | Where-Object { $_.Name -notin @('.git','.vercel','.pytest_cache','__pycache__','tests','.github') } | Copy-Item -Destination $dst -Recurse
+$env:VERCEL_ORG_ID = "team_1XG2QveDl9UAd4BMV9IxJBt7"
+$env:VERCEL_PROJECT_ID = "prj_I4cH6nkY7iRWWRZXw1FwChbrD7VH"
+Set-Location $dst
 vercel deploy --prod
 ```
+
+Либо создайте новый коммит от имени владельца team (`fast75211@gmail.com`) и
+деплойте из репозитория обычным `vercel deploy --prod`.
 
 Проверка функции:
 
