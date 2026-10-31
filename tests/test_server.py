@@ -173,6 +173,11 @@ class EngineTests(unittest.TestCase):
 class GameTests(unittest.TestCase):
     def setUp(self):
         STORE.files.clear()
+        # These tests play many rounds back to back; the rate limit has its
+        # own tests in test_engine_safety.py.
+        self._rate = engine.RATE_MAX_ACTIONS
+        engine.RATE_MAX_ACTIONS = 10_000
+        self.addCleanup(setattr, engine, "RATE_MAX_ACTIONS", self._rate)
 
     def give(self, uid, amount):
         def apply(doc):

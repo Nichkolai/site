@@ -105,13 +105,20 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(500, {"ok": False, "error": "internal_error"})
             return
 
-        if action == "withdraw.request":
+        if action == "withdraw.request" and not response.get("replayed"):
             item = response["result"].get("withdrawal")
             if item:
-                try:
-                    response["result"]["notified"] = engine.notify_withdrawal(user_id, item)
-                except Exception as exc:  # noqa: BLE001
-                    print(f"[game] withdraw notify: {type(exc).__name__}: {exc}", flush=True)
-                    response["result"]["notified"] = False
+                notified = False
+                # One retry: a single failed Bot API call must not leave the
+                # request unseen by the administrators.
+                for _ in range(2):
+                    try:
+                        notified = engine.notify_withdrawal(user_id, item)
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"[game] withdraw notify: {type(exc).__name__}: {exc}", flush=True)
+                        notified = False
+                    if notified:
+                        break
+                response["result"]["notified"] = notified
 
         self._send_json(200, response)

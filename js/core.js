@@ -949,25 +949,49 @@
     };
   }
 
+  // Actions that only read need no request id; every other action carries one
+  // so that a retry after a lost connection can never play the round twice.
+  const READ_ONLY_ACTIONS = new Set(["state", "crash.poll"]);
+
+  function newRequestId() {
+    try {
+      const bytes = new Uint8Array(12);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+    } catch (error) {
+      return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+    }
+  }
+
   async function api(action, params = {}, options = {}) {
     if (!hasAuth()) throw new ApiError("noauth", API_MESSAGES.noauth, 0);
-    const controller = new AbortController();
     const timeout = Math.max(1000, Number(options.timeout) || 20000);
-    const timer = window.setTimeout(() => controller.abort(), timeout);
+    const payload = Object.assign({}, params, { action });
+    if (!READ_ONLY_ACTIONS.has(action) && !payload.reqId) payload.reqId = newRequestId();
+    const maxAttempts = payload.reqId ? 2 : 1;
+
     let response;
-    try {
-      response = await fetch("/api/game", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-        credentials: "same-origin",
-        signal: controller.signal,
-        body: JSON.stringify(authBody(Object.assign({}, params, { action })))
-      });
-    } catch (error) {
-      throw new ApiError("network", API_MESSAGES.network, 0);
-    } finally {
-      window.clearTimeout(timer);
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), timeout);
+      try {
+        response = await fetch("/api/game", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          credentials: "same-origin",
+          signal: controller.signal,
+          body: JSON.stringify(authBody(payload))
+        });
+        break;
+      } catch (error) {
+        if (attempt >= maxAttempts) throw new ApiError("network", API_MESSAGES.network, 0);
+        // The server may have handled the first request already; it answers
+        // a repeated request id with the same result instead of a new round.
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+      } finally {
+        window.clearTimeout(timer);
+      }
     }
     let data = null;
     try {
